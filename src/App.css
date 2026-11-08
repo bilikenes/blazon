@@ -1,0 +1,433 @@
+/* Uygulamada pencere arka planı Windows 11 Mica'dır (body şeffaf).
+   Tarayıcı önizlemesinde .no-mica ile Mica'ya yakın düz bir zemin kullanılır. */
+:root {
+  --text: #1a1a1a;
+  --text-2: #5f6168;
+  --text-3: #8b8d94;
+  --hairline: rgba(0, 0, 0, 0.07);
+  --surface: rgba(255, 255, 255, 0.55);
+  --surface-hover: rgba(0, 0, 0, 0.04);
+  --surface-press: rgba(0, 0, 0, 0.07);
+  --stage: rgba(255, 255, 255, 0.35);
+  --primary-bg: #1a1a1a;
+  --primary-text: #ffffff;
+  --floor: rgba(0, 0, 0, 0.18);
+  --ok: #0f9d58;
+  --err: #d93f3f;
+  --fallback-bg: #eef0f3;
+  --surface-strong: #ffffff;
+  --popover: #fbfbfc;
+  color-scheme: light dark;
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #f3f3f4;
+    --text-2: #a9abb3;
+    --text-3: #777a83;
+    --hairline: rgba(255, 255, 255, 0.07);
+    --surface: rgba(255, 255, 255, 0.045);
+    --surface-hover: rgba(255, 255, 255, 0.06);
+    --surface-press: rgba(255, 255, 255, 0.09);
+    --stage: rgba(255, 255, 255, 0.025);
+    --primary-bg: #f3f3f4;
+    --primary-text: #111214;
+    --floor: rgba(0, 0, 0, 0.55);
+    --ok: #4cc38a;
+    --err: #ff6b6b;
+    --fallback-bg: #1c1d21;
+    --surface-strong: #3a3c44;
+    --popover: #2a2b31;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { background: transparent; overflow: hidden; user-select: none; cursor: default; }
+html.no-mica body { background: var(--fallback-bg); }
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: default; }
+button:disabled { opacity: 0.4; }
+button:focus-visible { outline: 2px solid var(--text-2); outline-offset: 2px; }
+
+.window { height: 100%; display: flex; flex-direction: column; }
+
+/* ---------- Başlık çubuğu ---------- */
+.titlebar {
+  height: 40px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 16px;
+}
+.brand { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-2); }
+.brand-mark { display: flex; }
+.controls { display: flex; height: 100%; }
+.controls button {
+  width: 46px;
+  height: 100%;
+  font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets";
+  font-size: 10px;
+  color: var(--text-2);
+  transition: background 0.12s, color 0.12s;
+}
+.controls button:hover { background: var(--surface-hover); color: var(--text); }
+.controls .close:hover { background: #c42b1c; color: #fff; }
+
+/* ---------- Gövde ---------- */
+.body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 12px;
+  padding: 0 12px 12px;
+}
+
+.stage {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  border-radius: 12px;
+  background: var(--stage);
+  border: 1px solid var(--hairline);
+  perspective: 900px;
+  transition: background 0.2s, border-color 0.2s;
+}
+.stage.is-dragging {
+  background: var(--surface);
+  border-color: var(--text-3);
+}
+
+.canvas { position: relative; display: grid; place-items: center; }
+.preview { width: 272px; height: 272px; transform-style: preserve-3d; }
+.preview > div, .preview svg { width: 100%; height: 100%; display: block; }
+.floor {
+  position: absolute;
+  bottom: 8px;
+  width: 200px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--floor), transparent);
+  filter: blur(6px);
+  z-index: -1;
+}
+
+.hint { color: var(--text-2); display: flex; align-items: center; gap: 8px; height: 52px; }
+.hint .dot { color: var(--text-3); }
+
+.target {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(440px, 90%);
+  height: 52px;
+  padding: 0 16px 0 10px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+}
+.target-icon { display: flex; flex: none; }
+.target-text { display: flex; flex-direction: column; min-width: 0; }
+.target-text strong { font-weight: 600; font-size: 13px; }
+.target-text small {
+  font-size: 11.5px;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.link { color: var(--text); font-weight: 600; border-radius: 4px; }
+.link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.target .link { margin-left: 8px; color: var(--text-2); font-weight: 500; flex: none; }
+.target .link:hover { color: var(--text); }
+
+/* ---------- Denetçi paneli ---------- */
+.inspector {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 18px 16px 16px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+}
+.group.grow { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* Sembol seçici: kategori ikon şeridi */
+.svg { display: flex; }
+.strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 34px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--hairline);
+}
+.strip-btn {
+  position: relative;
+  width: 26px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+  transition: color 0.12s;
+}
+.strip-btn:hover, .strip-btn.on { color: var(--text); }
+.strip-line {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--text);
+}
+.strip-sep { width: 1px; height: 16px; background: var(--hairline); }
+.strip-search { flex: 1; display: flex; align-items: center; gap: 8px; padding-left: 5px; color: var(--text-3); }
+.strip-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+}
+.strip-search input::placeholder { color: var(--text-3); }
+.icon-btn {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: var(--text-2);
+}
+.icon-btn:hover { background: var(--surface-hover); color: var(--text); }
+.section-title { margin: 14px 0 6px; font-size: 11.5px; font-weight: 600; color: var(--text-3); }
+section:first-child .section-title { margin-top: 8px; }
+
+.symbols-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0 -6px;
+  padding: 0 6px 4px;
+  /* İnce, yalnızca üzerine gelince görünen kaydırma çubuğu */
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.symbols-scroll:hover { scrollbar-color: var(--text-3) transparent; }
+.empty { margin: 24px 0; text-align: center; color: var(--text-3); }
+.label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.label { align-items: center; }
+.label em { font-style: normal; font-weight: 400; color: var(--text-3); margin-left: 4px; }
+
+/* Klasör | Sembol geçişi */
+.segmented {
+  display: flex;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--surface-hover);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+.segmented button {
+  position: relative;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  transition: color 0.12s;
+}
+.segmented button.on, .segmented button:hover { color: var(--text); }
+.segmented button > span:last-child { position: relative; }
+.seg-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: var(--surface-strong);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), inset 0 0 0 1px var(--hairline);
+}
+
+/* Özel renk kutusu ve açılır seçici */
+.swatches-wrap { position: relative; }
+.custom-fill {
+  display: grid;
+  place-items: center;
+  background: conic-gradient(from 90deg, #ff6b6b, #ffd166, #6ee7a8, #5ec8ff, #8b7bff, #ff6bd6, #ff6b6b);
+}
+.custom-plus {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-strong);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1;
+}
+.custom-plus:empty { display: none; }
+.color-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  width: 228px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--popover);
+  box-shadow: 0 0 0 1px var(--hairline), 0 16px 40px rgba(0, 0, 0, 0.28);
+  transform-origin: top right;
+}
+.color-pop .react-colorful { width: 100%; height: 150px; gap: 10px; }
+.color-pop .react-colorful__saturation { border-radius: 8px; border-bottom: 0; }
+.color-pop .react-colorful__hue { height: 12px; border-radius: 6px; }
+.color-pop .react-colorful__pointer { width: 18px; height: 18px; border-width: 2px; }
+.color-pop-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  height: 30px;
+  padding: 0 4px 0 8px;
+  border-radius: 8px;
+  background: var(--surface-hover);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+.color-pop-dot { width: 14px; height: 14px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15); }
+.color-pop-hash { color: var(--text-3); }
+.color-pop-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+  user-select: text;
+}
+.color-pop-done {
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 6px;
+  background: var(--primary-bg);
+  color: var(--primary-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.swatch { position: relative; aspect-ratio: 1; display: grid; place-items: center; }
+.swatch-fill {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: transform 0.15s;
+}
+.swatch:hover .swatch-fill { transform: scale(1.08); }
+.swatch:active .swatch-fill { transform: scale(0.94); }
+.swatch-ring {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--text);
+}
+
+.symbols { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; }
+.symbol {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--text-2);
+  transition: background 0.12s, color 0.12s;
+}
+.symbol:hover { background: var(--surface-hover); color: var(--text); }
+.symbol:active { background: var(--surface-press); }
+.symbol.on { color: var(--text); }
+.symbol-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: var(--surface-press);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+.symbol-glyph, .symbol-none { position: relative; display: flex; }
+.symbol-none {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.75px solid currentColor;
+  background: linear-gradient(135deg, transparent 46%, currentColor 46%, currentColor 54%, transparent 54%);
+}
+
+.footer { display: flex; flex-direction: column; gap: 4px; }
+.primary {
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--primary-bg);
+  color: var(--primary-text);
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+.primary:not(:disabled):hover { opacity: 0.88; }
+.secondary { height: 32px; border-radius: 8px; color: var(--text-2); }
+.secondary:not(:disabled):hover { background: var(--surface-hover); color: var(--text); }
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Bildirim ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px 9px 12px;
+  border-radius: 10px;
+  background: var(--primary-bg);
+  color: var(--primary-text);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+  max-width: 70vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toast-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.toast.ok .toast-dot { background: var(--ok); }
+.toast.err .toast-dot { background: var(--err); }
