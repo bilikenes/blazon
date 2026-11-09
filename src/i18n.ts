@@ -83,6 +83,23 @@ const tr = {
   "error.shell_rejected": "Windows bu klasörün ayarını kabul etmedi.",
   "error.io": "Beklenmeyen bir dosya hatası oluştu.",
   "error.unknown": "Bir şeyler ters gitti. Lütfen tekrar dene.",
+
+  "about.title": "Blazon hakkında",
+  "about.version": "Sürüm {version}",
+  "about.tagline": "Klasörlerine renk ver.",
+  "about.report": "Sorun bildir",
+  "about.license": "MIT lisansı",
+
+  "update.check": "Güncellemeleri denetle",
+  "update.checking": "Denetleniyor…",
+  "update.latest": "En güncel sürümü kullanıyorsun",
+  "update.available": "Yeni sürüm hazır: {version}",
+  "update.pill": "Güncelle · {version}",
+  "update.installNow": "{version} sürümünü kur",
+  "update.downloading": "İndiriliyor…",
+  "update.downloadingPct": "İndiriliyor · %{pct}",
+  "update.checkFailed": "Güncelleme denetlenemedi. İnternet bağlantını kontrol et.",
+  "update.installFailed": "Güncelleme kurulamadı. Daha sonra tekrar dene.",
 };
 
 type Key = keyof typeof tr;
@@ -142,6 +159,23 @@ const en: Record<Key, string> = {
   "error.shell_rejected": "Windows didn't accept the setting for this folder.",
   "error.io": "An unexpected file error occurred.",
   "error.unknown": "Something went wrong. Please try again.",
+
+  "about.title": "About Blazon",
+  "about.version": "Version {version}",
+  "about.tagline": "Give your folders some colour.",
+  "about.report": "Report a problem",
+  "about.license": "MIT licence",
+
+  "update.check": "Check for updates",
+  "update.checking": "Checking…",
+  "update.latest": "You're on the latest version",
+  "update.available": "New version ready: {version}",
+  "update.pill": "Update · {version}",
+  "update.installNow": "Install {version}",
+  "update.downloading": "Downloading…",
+  "update.downloadingPct": "Downloading · {pct}%",
+  "update.checkFailed": "Couldn't check for updates. Check your internet connection.",
+  "update.installFailed": "The update couldn't be installed. Please try again later.",
 };
 
 const dict: Record<Key, string> = lang === "tr" ? tr : en;

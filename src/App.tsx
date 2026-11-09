@@ -16,6 +16,8 @@ import ColorSwatches, { colorName, type Swatch } from "./ColorSwatches";
 import { symbolById } from "./symbols";
 import SymbolPicker from "./SymbolPicker";
 import { errorMessage, lang, pick, switchLang, t } from "./i18n";
+import About from "./About";
+import { useUpdater } from "./updater";
 import logoRaw from "../design/logo/final/blazon-symbol-small.svg?raw";
 import "./App.css";
 
@@ -79,6 +81,7 @@ export default function App() {
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
+  const updater = useUpdater(IN_APP);
 
   const style = { color, symbol, symbolColor };
   const svg = useMemo(() => folderSvg(style), [color, symbol, symbolColor]);
@@ -103,7 +106,7 @@ export default function App() {
   const notify = (kind: Toast["kind"], text: string) => {
     const id = Date.now();
     setToast({ id, kind, text });
-    setTimeout(() => setToast((t) => (t?.id === id ? null : t)), 2800);
+    setTimeout(() => setToast((t) => (t?.id === id ? null : t)), kind === "err" ? 6000 : 2800);
   };
 
   useEffect(() => {
@@ -155,10 +158,13 @@ export default function App() {
   return (
     <div className="window">
       <header className="titlebar" data-tauri-drag-region>
-        <div className="brand" data-tauri-drag-region>
-          <span className="brand-mark" dangerouslySetInnerHTML={{ __html: LOGO }} />
-          Blazon
-        </div>
+        <About
+          logo={LOGO}
+          inApp={IN_APP}
+          update={updater.state}
+          onCheck={updater.checkNow}
+          onInstall={updater.install}
+        />
         <div className="controls">
           <button
             className="lang"

@@ -1,0 +1,68 @@
+name: Release
+
+# `v0.2.0` gibi bir tag push edilince imzalı kurulum dosyasını ve updater'ın okuduğu
+# latest.json'u TASLAK bir GitHub Release'e yükler. Taslağı kontrol edip "Publish" deyince
+# uygulamalar güncellemeyi görür. Ayrıntılar: RELEASING.md
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & publish (Windows x64)
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag must match package.json version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          want="v$(node -p "require('./package.json').version")"
+          if [ "$want" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} ile package.json sürümü ($want) uyuşmuyor"
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - name: Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: v__VERSION__
+          releaseName: Blazon v__VERSION__
+          releaseBody: |
+            ## İndir / Download
+            **Blazon___VERSION___x64-setup.exe** dosyasını indirip çalıştır. Yönetici izni gerekmez.
+            Download **Blazon___VERSION___x64-setup.exe** and run it. No admin rights needed.
+
+            Zaten kuruluysa uygulama güncellemeyi kendisi bulur. · Already installed? Blazon updates itself.
+
+            ## Değişiklikler / Changes
+            - …
+          releaseDraft: true
+          prerelease: false
+          includeUpdaterJson: true

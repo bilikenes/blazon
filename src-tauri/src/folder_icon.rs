@@ -67,7 +67,10 @@ pub struct IconError {
 
 impl IconError {
     fn new(code: ErrorCode, detail: impl Into<String>) -> Self {
-        Self { code, detail: detail.into() }
+        Self {
+            code,
+            detail: detail.into(),
+        }
     }
 
     fn io(action: &str, path: &Path, e: std::io::Error) -> Self {
@@ -83,9 +86,9 @@ impl std::fmt::Display for IconError {
 
 fn io_code(e: &std::io::Error) -> ErrorCode {
     match e.raw_os_error() {
-        Some(5) => ErrorCode::AccessDenied,         // ERROR_ACCESS_DENIED
-        Some(19) => ErrorCode::ReadOnlyMedia,       // ERROR_WRITE_PROTECT
-        Some(32 | 33) => ErrorCode::InUse,          // ERROR_SHARING_VIOLATION / LOCK_VIOLATION
+        Some(5) => ErrorCode::AccessDenied,   // ERROR_ACCESS_DENIED
+        Some(19) => ErrorCode::ReadOnlyMedia, // ERROR_WRITE_PROTECT
+        Some(32 | 33) => ErrorCode::InUse,    // ERROR_SHARING_VIOLATION / LOCK_VIOLATION
         _ if e.kind() == std::io::ErrorKind::PermissionDenied => ErrorCode::AccessDenied,
         _ if e.kind() == std::io::ErrorKind::ReadOnlyFilesystem => ErrorCode::ReadOnlyMedia,
         _ => ErrorCode::Io,
@@ -123,7 +126,8 @@ pub fn reset(folder: &Path) -> Result<()> {
             let current = read_desktop_ini(folder);
             let edited = edit_ini(&current, None);
             if !ini_has_content(&edited) {
-                fs::remove_file(&ini_path).map_err(|e| IconError::io("desktop.ini silinemedi", &ini_path, e))?;
+                fs::remove_file(&ini_path)
+                    .map_err(|e| IconError::io("desktop.ini silinemedi", &ini_path, e))?;
             } else if edited.trim() != current.trim() {
                 write_desktop_ini(folder, &edited)?;
             }
@@ -146,10 +150,13 @@ fn set_folder_icon(folder: &Path, icon: Option<&str>) -> Result<()> {
     let mut settings: SHFOLDERCUSTOMSETTINGS = unsafe { std::mem::zeroed() };
     settings.dwSize = size_of::<SHFOLDERCUSTOMSETTINGS>() as u32;
     settings.dwMask = FCSM_ICONFILE;
-    settings.pszIconFile = icon_w.as_mut().map_or(std::ptr::null_mut(), |v| v.as_mut_ptr());
+    settings.pszIconFile = icon_w
+        .as_mut()
+        .map_or(std::ptr::null_mut(), |v| v.as_mut_ptr());
     settings.iIconIndex = 0;
 
-    let hr = unsafe { SHGetSetFolderCustomSettings(&mut settings, folder_w.as_ptr(), FCS_FORCEWRITE) };
+    let hr =
+        unsafe { SHGetSetFolderCustomSettings(&mut settings, folder_w.as_ptr(), FCS_FORCEWRITE) };
     if hr < 0 {
         let code = match hr as u32 {
             0x8007_0005 => ErrorCode::AccessDenied,
@@ -157,17 +164,26 @@ fn set_folder_icon(folder: &Path, icon: Option<&str>) -> Result<()> {
             0x8007_0020 | 0x8007_0021 => ErrorCode::InUse,
             _ => ErrorCode::ShellRejected,
         };
-        return Err(IconError::new(code, format!("SHGetSetFolderCustomSettings HRESULT {hr:#010x}")));
+        return Err(IconError::new(
+            code,
+            format!("SHGetSetFolderCustomSettings HRESULT {hr:#010x}"),
+        ));
     }
     Ok(())
 }
 
 fn ensure_folder(folder: &Path) -> Result<()> {
     if !folder.is_dir() {
-        return Err(IconError::new(ErrorCode::NotAFolder, folder.display().to_string()));
+        return Err(IconError::new(
+            ErrorCode::NotAFolder,
+            folder.display().to_string(),
+        ));
     }
     if folder.parent().is_none() {
-        return Err(IconError::new(ErrorCode::DriveRoot, folder.display().to_string()));
+        return Err(IconError::new(
+            ErrorCode::DriveRoot,
+            folder.display().to_string(),
+        ));
     }
     Ok(())
 }
@@ -192,12 +208,14 @@ fn build_ico(png: &[u8]) -> Result<Vec<u8>> {
             imageops::resize(&src, size, size, FilterType::Lanczos3)
         };
         let image = ico::IconImage::from_rgba_data(size, size, frame.into_raw());
-        let entry = ico::IconDirEntry::encode(&image).map_err(|e| IconError::new(ErrorCode::InvalidImage, format!("ICO: {e}")))?;
+        let entry = ico::IconDirEntry::encode(&image)
+            .map_err(|e| IconError::new(ErrorCode::InvalidImage, format!("ICO: {e}")))?;
         dir.add_entry(entry);
     }
 
     let mut out = Vec::new();
-    dir.write(&mut out).map_err(|e| IconError::new(ErrorCode::InvalidImage, format!("ICO: {e}")))?;
+    dir.write(&mut out)
+        .map_err(|e| IconError::new(ErrorCode::InvalidImage, format!("ICO: {e}")))?;
     Ok(out)
 }
 
@@ -313,15 +331,20 @@ fn set_readonly(folder: &Path, readonly: bool) -> Result<()> {
     }
     #[allow(clippy::permissions_set_readonly_false)]
     perms.set_readonly(readonly);
-    fs::set_permissions(folder, perms).map_err(|e| IconError::io("öznitelik ayarlanamadı", folder, e))
+    fs::set_permissions(folder, perms)
+        .map_err(|e| IconError::io("öznitelik ayarlanamadı", folder, e))
 }
 
 fn remove_our_icons(folder: &Path, keep: Option<&str>) {
-    let Ok(entries) = fs::read_dir(folder) else { return };
+    let Ok(entries) = fs::read_dir(folder) else {
+        return;
+    };
     for entry in entries.flatten() {
         let name = entry.file_name().to_string_lossy().to_string();
         let ours = name.ends_with(".ico")
-            && std::iter::once(ICON_PREFIX).chain(LEGACY_PREFIXES).any(|p| name.starts_with(p));
+            && std::iter::once(ICON_PREFIX)
+                .chain(LEGACY_PREFIXES)
+                .any(|p| name.starts_with(p));
         if ours && Some(name.as_str()) != keep {
             let _ = fs::remove_file(entry.path());
         }
@@ -336,10 +359,24 @@ fn wide(p: &Path) -> Vec<u16> {
 /// beklenir; böylece pencere F5'e gerek kalmadan hemen güncellenir.
 fn notify_explorer(folder: &Path) {
     let item = wide(folder);
-    unsafe { SHChangeNotify(SHCNE_UPDATEITEM as i32, SHCNF_PATHW | SHCNF_FLUSH, item.as_ptr().cast(), std::ptr::null()) };
+    unsafe {
+        SHChangeNotify(
+            SHCNE_UPDATEITEM as i32,
+            SHCNF_PATHW | SHCNF_FLUSH,
+            item.as_ptr().cast(),
+            std::ptr::null(),
+        )
+    };
     if let Some(parent) = folder.parent() {
         let parent = wide(parent);
-        unsafe { SHChangeNotify(SHCNE_UPDATEDIR as i32, SHCNF_PATHW | SHCNF_FLUSH, parent.as_ptr().cast(), std::ptr::null()) };
+        unsafe {
+            SHChangeNotify(
+                SHCNE_UPDATEDIR as i32,
+                SHCNF_PATHW | SHCNF_FLUSH,
+                parent.as_ptr().cast(),
+                std::ptr::null(),
+            )
+        };
     }
 }
 
@@ -377,7 +414,13 @@ mod tests {
         let path: Vec<u16> = folder.as_os_str().encode_wide().chain(Some(0)).collect();
         let mut info: SHFILEINFOW = unsafe { std::mem::zeroed() };
         let ok = unsafe {
-            SHGetFileInfoW(path.as_ptr(), 0, &mut info, size_of::<SHFILEINFOW>() as u32, SHGFI_ICONLOCATION)
+            SHGetFileInfoW(
+                path.as_ptr(),
+                0,
+                &mut info,
+                size_of::<SHFILEINFOW>() as u32,
+                SHGFI_ICONLOCATION,
+            )
         };
         assert_ne!(ok, 0, "SHGetFileInfoW başarısız");
         let len = info.szDisplayName.iter().position(|&c| c == 0).unwrap_or(0);
@@ -412,7 +455,15 @@ mod tests {
         com_init();
         let path: Vec<u16> = folder.as_os_str().encode_wide().chain(Some(0)).collect();
         let mut info: SHFILEINFOW = unsafe { std::mem::zeroed() };
-        unsafe { SHGetFileInfoW(path.as_ptr(), 0, &mut info, size_of::<SHFILEINFOW>() as u32, SHGFI_SYSICONINDEX) };
+        unsafe {
+            SHGetFileInfoW(
+                path.as_ptr(),
+                0,
+                &mut info,
+                size_of::<SHFILEINFOW>() as u32,
+                SHGFI_SYSICONINDEX,
+            )
+        };
         info.iIcon
     }
 
@@ -428,17 +479,33 @@ mod tests {
         fs::create_dir_all(&dir).unwrap();
         let default_index = sys_icon_index(&plain);
 
-        for (round, rgb) in [[200, 60, 60], [60, 60, 200], [60, 200, 60]].into_iter().enumerate() {
+        for (round, rgb) in [[200, 60, 60], [60, 60, 200], [60, 200, 60]]
+            .into_iter()
+            .enumerate()
+        {
             std::thread::sleep(std::time::Duration::from_millis(20));
             apply(&dir, &test_png(rgb)).unwrap();
             let name = current_icon_name(&dir);
             let seen = shell_icon_location(&dir);
-            assert!(seen.ends_with(&name), "{}. uygulama: shell {seen:?} görüyor, beklenen {name}", round + 1);
-            assert_ne!(sys_icon_index(&dir), default_index, "{}. uygulama: Explorer varsayılan ikonu çiziyor", round + 1);
+            assert!(
+                seen.ends_with(&name),
+                "{}. uygulama: shell {seen:?} görüyor, beklenen {name}",
+                round + 1
+            );
+            assert_ne!(
+                sys_icon_index(&dir),
+                default_index,
+                "{}. uygulama: Explorer varsayılan ikonu çiziyor",
+                round + 1
+            );
         }
 
         reset(&dir).unwrap();
-        assert_eq!(sys_icon_index(&dir), default_index, "sıfırlama sonrası varsayılan ikon olmalı");
+        assert_eq!(
+            sys_icon_index(&dir),
+            default_index,
+            "sıfırlama sonrası varsayılan ikon olmalı"
+        );
         assert_eq!(fs::read_dir(&dir).unwrap().count(), 0);
 
         fs::remove_dir_all(&base).unwrap();
@@ -469,38 +536,71 @@ mod tests {
         assert_eq!(icons.len(), 1, "eski ikon dosyaları temizlenmeli");
         let ico = fs::read(icons[0].path()).unwrap();
         assert_eq!(&ico[..4], &[0, 0, 1, 0], "geçerli ICO başlığı");
-        assert_eq!(u16::from_le_bytes([ico[4], ico[5]]) as usize, ICON_SIZES.len());
+        assert_eq!(
+            u16::from_le_bytes([ico[4], ico[5]]) as usize,
+            ICON_SIZES.len()
+        );
 
         let ini = read_desktop_ini(&dir);
         let icon_name = icons[0].file_name().to_string_lossy().to_string();
         assert!(ini.contains(&format!("IconResource={icon_name},0")));
-        let ini_attrs = fs::metadata(dir.join("desktop.ini")).unwrap().file_attributes();
-        assert_eq!(ini_attrs & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM), FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM);
-        assert!(fs::metadata(&dir).unwrap().permissions().readonly(), "klasör ReadOnly olmalı");
+        let ini_attrs = fs::metadata(dir.join("desktop.ini"))
+            .unwrap()
+            .file_attributes();
+        assert_eq!(
+            ini_attrs & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM),
+            FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM
+        );
+        assert!(
+            fs::metadata(&dir).unwrap().permissions().readonly(),
+            "klasör ReadOnly olmalı"
+        );
 
         reset(&dir).unwrap();
         assert!(!dir.join("desktop.ini").exists());
         assert!(!fs::metadata(&dir).unwrap().permissions().readonly());
-        assert_eq!(fs::read_dir(&dir).unwrap().count(), 0, "klasörde artık dosya kalmamalı");
+        assert_eq!(
+            fs::read_dir(&dir).unwrap().count(),
+            0,
+            "klasörde artık dosya kalmamalı"
+        );
 
         fs::remove_dir(&dir).unwrap();
     }
 
     #[test]
     fn errors_carry_codes() {
-        assert_eq!(apply(Path::new("C:\\"), &test_png([0, 0, 0])).unwrap_err().code, ErrorCode::DriveRoot);
+        assert_eq!(
+            apply(Path::new("C:\\"), &test_png([0, 0, 0]))
+                .unwrap_err()
+                .code,
+            ErrorCode::DriveRoot
+        );
         let missing = std::env::temp_dir().join("blazon-yok-boyle-klasor");
         assert_eq!(reset(&missing).unwrap_err().code, ErrorCode::NotAFolder);
 
         let dir = std::env::temp_dir().join(format!("blazon-badpng-{}", unix_millis()));
         fs::create_dir_all(&dir).unwrap();
-        assert_eq!(apply(&dir, b"not a png").unwrap_err().code, ErrorCode::InvalidImage);
-        assert_eq!(fs::read_dir(&dir).unwrap().count(), 0, "hatalı görselde dosya yazılmamalı");
+        assert_eq!(
+            apply(&dir, b"not a png").unwrap_err().code,
+            ErrorCode::InvalidImage
+        );
+        assert_eq!(
+            fs::read_dir(&dir).unwrap().count(),
+            0,
+            "hatalı görselde dosya yazılmamalı"
+        );
         fs::remove_dir(&dir).unwrap();
 
         use std::io::{Error, ErrorKind};
-        assert_eq!(io_code(&Error::from_raw_os_error(5)), ErrorCode::AccessDenied);
-        assert_eq!(io_code(&Error::from_raw_os_error(19)), ErrorCode::ReadOnlyMedia);
+        assert_eq!(
+            io_code(&Error::from_raw_os_error(5)),
+            ErrorCode::AccessDenied
+        );
+        assert_eq!(
+            io_code(&Error::from_raw_os_error(19)),
+            ErrorCode::ReadOnlyMedia
+        );
         assert_eq!(io_code(&Error::from_raw_os_error(32)), ErrorCode::InUse);
         assert_eq!(io_code(&Error::new(ErrorKind::Other, "x")), ErrorCode::Io);
 
@@ -512,7 +612,10 @@ mod tests {
     fn reset_detects_empty_ini() {
         let out = edit_ini("[.ShellClassInfo]\r\nIconResource=a.ico,0\r\n", None);
         assert!(!ini_has_content(&out));
-        let out = edit_ini("[.ShellClassInfo]\r\nIconResource=a.ico,0\r\nInfoTip=hi\r\n", None);
+        let out = edit_ini(
+            "[.ShellClassInfo]\r\nIconResource=a.ico,0\r\nInfoTip=hi\r\n",
+            None,
+        );
         assert!(ini_has_content(&out));
     }
 }
