@@ -1,95 +1,95 @@
 {
-  "_info": "Uygulamada görünen sembol seti. Her satır: [Gravity UI ikon adı, Türkçe etiket]. Değiştirdikten sonra `npm run icons` çalıştır. Tüm ikonlar: node_modules/@gravity-ui/icons/svgs",
+  "_info": "Uygulamada görünen sembol seti. Her satır: [Gravity UI ikon adı, Türkçe etiket, (isteğe bağlı) İngilizce etiket — yoksa ikon adından türetilir]. Değiştirdikten sonra `npm run icons` çalıştır. Tüm ikonlar: node_modules/@gravity-ui/icons/svgs",
   "categories": [
     {
       "id": "general",
-      "label": "Genel",
+      "label": "Genel", "label_en": "General",
       "icons": [
         ["star", "Yıldız"], ["heart", "Kalp"], ["bookmark", "Yer imi"], ["flag", "Bayrak"],
-        ["crown-diamond", "Taç"], ["gem", "Mücevher"], ["sparkles", "Parıltı"], ["flame", "Ateş"],
-        ["bulb", "Fikir"], ["target", "Hedef"], ["pin", "Raptiye"], ["tag", "Etiket"],
+        ["crown-diamond", "Taç", "Crown"], ["gem", "Mücevher"], ["sparkles", "Parıltı"], ["flame", "Ateş"],
+        ["bulb", "Fikir", "Light bulb"], ["target", "Hedef"], ["pin", "Raptiye"], ["tag", "Etiket"],
         ["gift", "Hediye"], ["medal", "Madalya"], ["thunderbolt", "Şimşek"], ["hourglass", "Kum saati"]
       ]
     },
     {
       "id": "work",
-      "label": "İş",
+      "label": "İş", "label_en": "Work",
       "icons": [
         ["briefcase", "Çanta"], ["suitcase", "Valiz"], ["calendar", "Takvim"], ["clock", "Saat"],
         ["file-text", "Belge"], ["files", "Dosyalar"], ["archive", "Arşiv"], ["box", "Kutu"],
-        ["envelope", "Posta"], ["printer", "Yazıcı"], ["list-check", "Yapılacaklar"], ["square-article", "Makale"],
-        ["office-badge", "Kimlik"], ["persons", "Ekip"], ["megaphone", "Duyuru"], ["comments", "Sohbet"]
+        ["envelope", "Posta"], ["printer", "Yazıcı"], ["list-check", "Yapılacaklar", "Checklist"], ["square-article", "Makale", "Article"],
+        ["office-badge", "Kimlik", "Badge"], ["persons", "Ekip", "People"], ["megaphone", "Duyuru"], ["comments", "Sohbet"]
       ]
     },
     {
       "id": "dev",
-      "label": "Yazılım",
+      "label": "Yazılım", "label_en": "Software",
       "icons": [
-        ["code", "Kod"], ["terminal", "Terminal"], ["curly-brackets", "Süslü parantez"], ["database", "Veritabanı"],
-        ["server", "Sunucu"], ["cpu", "İşlemci"], ["bug", "Hata"], ["branches-right", "Dal"],
-        ["code-fork", "Fork"], ["gear", "Ayarlar"], ["cube", "Paket"], ["nodes-right", "Ağ"],
+        ["code", "Kod"], ["terminal", "Terminal"], ["curly-brackets", "Süslü parantez", "Braces"], ["database", "Veritabanı"],
+        ["server", "Sunucu"], ["cpu", "İşlemci", "CPU"], ["bug", "Hata"], ["branches-right", "Dal", "Branches"],
+        ["code-fork", "Fork"], ["gear", "Ayarlar"], ["cube", "Paket"], ["nodes-right", "Ağ", "Network"],
         ["hard-drive", "Disk"], ["display", "Ekran"], ["keyboard", "Klavye"], ["function", "Fonksiyon"]
       ]
     },
     {
       "id": "design",
-      "label": "Tasarım",
+      "label": "Tasarım", "label_en": "Design",
       "icons": [
         ["palette", "Palet"], ["paintbrush", "Fırça"], ["brush", "Boya fırçası"], ["pencil", "Kalem"],
-        ["bucket-paint", "Boya kovası"], ["magic-wand", "Sihirli değnek"], ["crop", "Kırp"], ["layers", "Katmanlar"],
-        ["shapes-4", "Şekiller"], ["vector-square", "Vektör"], ["frame", "Çerçeve"], ["font", "Yazı tipi"],
+        ["bucket-paint", "Boya kovası", "Paint bucket"], ["magic-wand", "Sihirli değnek"], ["crop", "Kırp"], ["layers", "Katmanlar"],
+        ["shapes-4", "Şekiller", "Shapes"], ["vector-square", "Vektör", "Vector"], ["frame", "Çerçeve"], ["font", "Yazı tipi", "Typeface"],
         ["droplet", "Damla"], ["sticker", "Çıkartma"], ["scissors", "Makas"], ["eye", "Göz"]
       ]
     },
     {
       "id": "media",
-      "label": "Medya",
+      "label": "Medya", "label_en": "Media",
       "icons": [
         ["music-note", "Müzik"], ["headphones", "Kulaklık"], ["microphone", "Mikrofon"], ["picture", "Görsel"],
         ["camera", "Kamera"], ["video", "Video"], ["filmstrip", "Film"], ["play", "Oynat"],
-        ["tv", "Televizyon"], ["tv-retro", "Retro TV"], ["volume", "Ses"], ["bars-play", "Çalma listesi"],
-        ["broadcast-signal", "Yayın"], ["copy-picture", "Albüm"], ["smartphone", "Telefon"], ["quote-open", "Alıntı"]
+        ["tv", "Televizyon", "TV"], ["tv-retro", "Retro TV", "Retro TV"], ["volume", "Ses"], ["bars-play", "Çalma listesi", "Playlist"],
+        ["broadcast-signal", "Yayın"], ["copy-picture", "Albüm", "Gallery"], ["smartphone", "Telefon"], ["quote-open", "Alıntı", "Quote"]
       ]
     },
     {
       "id": "finance",
-      "label": "Finans",
+      "label": "Finans", "label_en": "Finance",
       "icons": [
-        ["wallet", "Cüzdan"], ["credit-card", "Kart"], ["circle-dollar", "Para"], ["sack", "Kese"],
-        ["chart-line-arrow-up", "Büyüme"], ["chart-pie", "Pasta grafik"], ["chart-column", "Sütun grafik"], ["calculator", "Hesap makinesi"],
-        ["scales-balanced", "Terazi"], ["vault", "Kasa"], ["receipt", "Fiş"], ["shopping-cart", "Alışveriş"],
-        ["tag-dollar", "Fiyat"], ["percent", "Yüzde"], ["file-dollar", "Fatura"], ["shopping-bag", "Poşet"]
+        ["wallet", "Cüzdan"], ["credit-card", "Kart"], ["circle-dollar", "Para", "Dollar"], ["sack", "Kese", "Money bag"],
+        ["chart-line-arrow-up", "Büyüme", "Growth"], ["chart-pie", "Pasta grafik"], ["chart-column", "Sütun grafik"], ["calculator", "Hesap makinesi"],
+        ["scales-balanced", "Terazi", "Scales"], ["vault", "Kasa"], ["receipt", "Fiş"], ["shopping-cart", "Alışveriş"],
+        ["tag-dollar", "Fiyat", "Price tag"], ["percent", "Yüzde"], ["file-dollar", "Fatura", "Invoice"], ["shopping-bag", "Poşet"]
       ]
     },
     {
       "id": "learn",
-      "label": "Öğrenme",
+      "label": "Öğrenme", "label_en": "Learning",
       "icons": [
         ["book", "Kitap"], ["books", "Kitaplar"], ["book-open", "Açık kitap"], ["graduation-cap", "Mezuniyet"],
         ["flask", "Deney"], ["microscope", "Mikroskop"], ["molecule", "Molekül"], ["globe", "Dünya"],
-        ["planet-earth", "Gezegen"], ["compass", "Pusula"], ["pencil-to-square", "Not"], ["square-check", "Görev"],
-        ["math-operations", "Matematik"], ["text", "Metin"], ["puzzle", "Bulmaca"], ["binoculars", "Dürbün"]
+        ["planet-earth", "Gezegen"], ["compass", "Pusula"], ["pencil-to-square", "Not", "Edit"], ["square-check", "Görev", "Checkbox"],
+        ["math-operations", "Matematik", "Math"], ["text", "Metin", "Text"], ["puzzle", "Bulmaca"], ["binoculars", "Dürbün"]
       ]
     },
     {
       "id": "life",
-      "label": "Yaşam",
+      "label": "Yaşam", "label_en": "Life",
       "icons": [
         ["house", "Ev"], ["car", "Araba"], ["plane", "Uçak"], ["rocket", "Roket"],
-        ["mug", "Kupa"], ["cup", "Fincan"], ["cherry", "Kiraz"], ["t-shirt", "Tişört"],
+        ["mug", "Kupa"], ["cup", "Fincan"], ["cherry", "Kiraz"], ["t-shirt", "Tişört", "T-shirt"],
         ["sun", "Güneş"], ["moon", "Ay"], ["snowflake", "Kar"], ["umbrella", "Şemsiye"],
-        ["heart-pulse", "Sağlık"], ["pill", "İlaç"], ["weight-hanging", "Spor"], ["map-pin", "Konum"],
-        ["ticket", "Bilet"], ["dice-5", "Zar"], ["face-smile", "Gülen yüz"], ["ghost", "Hayalet"]
+        ["heart-pulse", "Sağlık", "Health"], ["pill", "İlaç"], ["weight-hanging", "Spor", "Weight"], ["map-pin", "Konum", "Map pin"],
+        ["ticket", "Bilet"], ["dice-5", "Zar", "Dice"], ["face-smile", "Gülen yüz", "Smile"], ["ghost", "Hayalet"]
       ]
     },
     {
       "id": "system",
-      "label": "Sistem",
+      "label": "Sistem", "label_en": "System",
       "icons": [
         ["lock", "Kilit"], ["key", "Anahtar"], ["shield-check", "Güvenlik"], ["fingerprint", "Parmak izi"],
-        ["cloud", "Bulut"], ["arrow-down-to-line", "İndirilenler"], ["trash-bin", "Çöp"], ["person", "Kişisel"],
+        ["cloud", "Bulut"], ["arrow-down-to-line", "İndirilenler", "Download"], ["trash-bin", "Çöp"], ["person", "Kişisel"],
         ["link", "Bağlantı"], ["magnifier", "Arama"], ["bell", "Bildirim"], ["power", "Güç"],
-        ["plug-connection", "Bağlantı fişi"], ["floppy-disk", "Yedek"], ["tray", "Gelen kutusu"], ["folders", "Klasörler"]
+        ["plug-connection", "Bağlantı fişi", "Plug"], ["floppy-disk", "Yedek"], ["tray", "Gelen kutusu", "Inbox"], ["folders", "Klasörler"]
       ]
     }
   ]

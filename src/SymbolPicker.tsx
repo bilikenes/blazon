@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { CATEGORIES, searchSymbols, symbolById, symbolSvg, type SymbolDef } from "./symbols";
+import { pick, t } from "./i18n";
 import xmarkRaw from "@gravity-ui/icons/svgs/xmark.svg?raw";
 import magnifierRaw from "@gravity-ui/icons/svgs/magnifier.svg?raw";
 
@@ -70,7 +71,7 @@ export default function SymbolPicker({ value, onChange }: Props) {
   const grid = (items: SymbolDef[], withNone = false) => (
     <div className="symbols">
       {withNone && (
-        <button className={`symbol ${value === null ? "on" : ""}`} title="Sembol yok" onClick={() => onChange(null)}>
+        <button className={`symbol ${value === null ? "on" : ""}`} title={t("symbol.noneTitle")} onClick={() => onChange(null)}>
           {value === null && <motion.span layoutId="symbol-bg" className="symbol-bg" transition={spring} />}
           <span className="symbol-none" />
         </button>
@@ -79,8 +80,8 @@ export default function SymbolPicker({ value, onChange }: Props) {
         <button
           key={s.id}
           className={`symbol ${value === s.id ? "on" : ""}`}
-          title={s.label}
-          aria-label={s.label}
+          title={pick(s)}
+          aria-label={pick(s)}
           onClick={() => onChange(s.id)}
         >
           {value === s.id && <motion.span layoutId="symbol-bg" className="symbol-bg" transition={spring} />}
@@ -104,18 +105,18 @@ export default function SymbolPicker({ value, onChange }: Props) {
             <input
               ref={input}
               value={query}
-              placeholder="Sembol ara"
+              placeholder={t("symbol.search")}
               spellCheck={false}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Escape" && closeSearch()}
             />
-            <button className="icon-btn" title="Aramayı kapat" onClick={closeSearch}>
+            <button className="icon-btn" title={t("symbol.closeSearch")} onClick={closeSearch}>
               <Svg html={sized(xmarkRaw, 12)} />
             </button>
           </motion.label>
         ) : (
           <>
-            <button className="strip-btn" title="Ara" aria-label="Sembol ara" onClick={() => setSearchOpen(true)}>
+            <button className="strip-btn" title={t("symbol.searchShort")} aria-label={t("symbol.search")} onClick={() => setSearchOpen(true)}>
               <Svg html={sized(magnifierRaw, 15)} />
             </button>
             <span className="strip-sep" />
@@ -123,8 +124,8 @@ export default function SymbolPicker({ value, onChange }: Props) {
               <button
                 key={c.id}
                 className={`strip-btn ${active === c.id ? "on" : ""}`}
-                title={c.label}
-                aria-label={c.label}
+                title={pick(c)}
+                aria-label={pick(c)}
                 onClick={() => jumpTo(c.id)}
               >
                 <Svg html={categoryIcon(c.id)} />
@@ -140,12 +141,12 @@ export default function SymbolPicker({ value, onChange }: Props) {
           results.length ? (
             grid(results)
           ) : (
-            <p className="empty">“{query}” için sonuç yok</p>
+            <p className="empty">{t("symbol.noResults", { q: query })}</p>
           )
         ) : (
           CATEGORIES.map((c, i) => (
             <section key={c.id} data-cat={c.id}>
-              <h4 className="section-title">{c.label}</h4>
+              <h4 className="section-title">{pick(c)}</h4>
               {grid(c.icons, i === 0)}
             </section>
           ))

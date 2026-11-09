@@ -9,12 +9,20 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const pkg = join(root, "node_modules", "@gravity-ui", "icons");
 const catalog = JSON.parse(readFileSync(join(root, "src", "icons", "catalog.json"), "utf8"));
 
+// İngilizce etiket verilmemişse Gravity adından türet: "music-note" -> "Music note"
+const humanize = (name) => {
+  const words = name.replace(/-(fill|alt)$/, "").split("-");
+  const text = words.join(" ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
 const seen = new Set();
 const missing = [];
 const categories = catalog.categories.map((cat) => ({
   id: cat.id,
   label: cat.label,
-  icons: cat.icons.flatMap(([name, label]) => {
+  labelEn: cat.label_en ?? cat.label,
+  icons: cat.icons.flatMap(([name, label, labelEn]) => {
     if (seen.has(name)) throw new Error(`"${name}" iki kez listelenmiş`);
     seen.add(name);
     let svg;
@@ -30,7 +38,7 @@ const categories = catalog.categories.map((cat) => ({
       .replace(/^<svg[^>]*>/, "")
       .replace(/<\/svg>$/, "")
       .replace(/(fill|stroke)="(?!none|currentColor)[^"]*"/g, '$1="currentColor"');
-    return [{ id: name, label, viewBox, body }];
+    return [{ id: name, label, labelEn: labelEn ?? humanize(name), viewBox, body }];
   }),
 }));
 

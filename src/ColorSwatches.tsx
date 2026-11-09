@@ -2,9 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { HexColorInput, HexColorPicker } from "react-colorful";
+import { t } from "./i18n";
 
 export type Swatch = {
-  name: string;
+  id: string; // sabit anahtar (dil değişse de aynı)
+  name: string; // görünen ad
   hex: string | null; // null = "Otomatik"
   preview?: string; // kutuda gösterilecek CSS arka planı (varsayılan: hex)
 };
@@ -20,7 +22,7 @@ type Props = {
 const spring = { type: "spring", stiffness: 500, damping: 32 } as const;
 
 export const colorName = (swatches: Swatch[], value: string | null) =>
-  swatches.find((s) => s.hex === value)?.name ?? `Özel · ${value?.toUpperCase()}`;
+  swatches.find((s) => s.hex === value)?.name ?? t("color.customName", { hex: value?.toUpperCase() ?? "" });
 
 export default function ColorSwatches({ swatches, value, onChange, group, defaultCustom }: Props) {
   const isPreset = swatches.some((s) => s.hex === value);
@@ -53,7 +55,7 @@ export default function ColorSwatches({ swatches, value, onChange, group, defaul
       <div className="swatches">
         {swatches.map((s) => (
           <button
-            key={s.name}
+            key={s.id}
             className="swatch"
             title={s.name}
             aria-label={s.name}
@@ -69,8 +71,8 @@ export default function ColorSwatches({ swatches, value, onChange, group, defaul
 
         <button
           className={`swatch custom ${!isPreset ? "on" : ""}`}
-          title="Özel renk"
-          aria-label="Özel renk"
+          title={t("color.custom")}
+          aria-label={t("color.custom")}
           aria-expanded={open}
           onClick={() => {
             if (isPreset) onChange(custom);
@@ -99,7 +101,7 @@ export default function ColorSwatches({ swatches, value, onChange, group, defaul
               <span className="color-pop-hash">#</span>
               <HexColorInput className="color-pop-input" color={custom} onChange={pickCustom} />
               <button className="color-pop-done" onClick={() => setOpen(false)}>
-                Tamam
+                {t("color.done")}
               </button>
             </div>
           </motion.div>

@@ -15,45 +15,57 @@ import { folderPng, folderSvg, shade } from "./folderArt";
 import ColorSwatches, { colorName, type Swatch } from "./ColorSwatches";
 import { symbolById } from "./symbols";
 import SymbolPicker from "./SymbolPicker";
+import { errorMessage, lang, pick, switchLang, t } from "./i18n";
+import About from "./About";
+import { useUpdater } from "./updater";
+import logoRaw from "../design/logo/final/blazon-symbol-small.svg?raw";
 import "./App.css";
+
+const swatch = (id: Parameters<typeof t>[0] & `color.${string}`, hex: string): Swatch => ({
+  id,
+  name: t(id),
+  hex,
+});
 
 // Son kutu her iki palette de "Özel renk" seçicidir.
 const FOLDER_COLORS: Swatch[] = [
-  { name: "Gök", hex: "#5b8def" },
-  { name: "Çivit", hex: "#6e6ae8" },
-  { name: "Mor", hex: "#9b6bdf" },
-  { name: "Gül", hex: "#e46a93" },
-  { name: "Mercan", hex: "#ee7a64" },
-  { name: "Kehribar", hex: "#f0b44c" },
-  { name: "Adaçayı", hex: "#7fb58a" },
-  { name: "Deniz", hex: "#4fb3a9" },
-  { name: "Kum", hex: "#c9b394" },
-  { name: "Arduvaz", hex: "#7d8798" },
-  { name: "Grafit", hex: "#4a4f5c" },
+  swatch("color.sky", "#5b8def"),
+  swatch("color.indigo", "#6e6ae8"),
+  swatch("color.violet", "#9b6bdf"),
+  swatch("color.rose", "#e46a93"),
+  swatch("color.coral", "#ee7a64"),
+  swatch("color.amber", "#f0b44c"),
+  swatch("color.sage", "#7fb58a"),
+  swatch("color.sea", "#4fb3a9"),
+  swatch("color.sand", "#c9b394"),
+  swatch("color.slate", "#7d8798"),
+  swatch("color.graphite", "#4a4f5c"),
 ];
 
 /** Sembol paleti; ilk kutu "Otomatik" = klasör renginin koyu tonuyla kabartma. */
 const symbolColors = (folderHex: string): Swatch[] => [
   {
-    name: "Otomatik",
+    id: "color.auto",
+    name: t("color.auto"),
     hex: null,
     preview: `linear-gradient(135deg, ${shade(folderHex, 0.1)} 50%, ${shade(folderHex, -0.38)} 50%)`,
   },
-  { name: "Beyaz", hex: "#ffffff" },
-  { name: "Gece", hex: "#23262f" },
-  { name: "Gök", hex: "#5b8def" },
-  { name: "Çivit", hex: "#6e6ae8" },
-  { name: "Mor", hex: "#9b6bdf" },
-  { name: "Gül", hex: "#e46a93" },
-  { name: "Mercan", hex: "#ee7a64" },
-  { name: "Kehribar", hex: "#f0b44c" },
-  { name: "Adaçayı", hex: "#7fb58a" },
-  { name: "Deniz", hex: "#4fb3a9" },
+  swatch("color.white", "#ffffff"),
+  swatch("color.night", "#23262f"),
+  swatch("color.sky", "#5b8def"),
+  swatch("color.indigo", "#6e6ae8"),
+  swatch("color.violet", "#9b6bdf"),
+  swatch("color.rose", "#e46a93"),
+  swatch("color.coral", "#ee7a64"),
+  swatch("color.amber", "#f0b44c"),
+  swatch("color.sage", "#7fb58a"),
+  swatch("color.sea", "#4fb3a9"),
 ];
 
 const spring = { type: "spring", stiffness: 500, damping: 32 } as const;
 const soft = { type: "spring", stiffness: 260, damping: 26 } as const;
 const IN_APP = isTauri();
+const LOGO = logoRaw.replace(/width="\d+"/, 'width="16"').replace(/height="\d+"/, 'height="16"');
 
 type Toast = { id: number; kind: "ok" | "err"; text: string };
 
@@ -69,6 +81,7 @@ export default function App() {
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
+  const updater = useUpdater(IN_APP);
 
   const style = { color, symbol, symbolColor };
   const svg = useMemo(() => folderSvg(style), [color, symbol, symbolColor]);
@@ -93,7 +106,7 @@ export default function App() {
   const notify = (kind: Toast["kind"], text: string) => {
     const id = Date.now();
     setToast({ id, kind, text });
-    setTimeout(() => setToast((t) => (t?.id === id ? null : t)), 2800);
+    setTimeout(() => setToast((t) => (t?.id === id ? null : t)), kind === "err" ? 6000 : 2800);
   };
 
   useEffect(() => {
@@ -114,7 +127,7 @@ export default function App() {
   }, []);
 
   const pickFolder = async () => {
-    if (!IN_APP) return notify("err", "Klasör seçimi yalnızca uygulamada çalışır");
+    if (!IN_APP) return notify("err", t("stage.onlyInApp"));
     const picked = await open({ directory: true, multiple: false });
     if (typeof picked === "string") setFolder(picked);
   };
@@ -126,32 +139,44 @@ export default function App() {
       if (action === "apply") {
         const png = await folderPng(style);
         await invoke("apply_folder_icon", { folder, png: Array.from(png) });
-        notify("ok", `${baseName(folder)} güncellendi`);
+        notify("ok", t("toast.applied", { name: baseName(folder) }));
       } else {
         await invoke("reset_folder_icon", { folder });
-        notify("ok", `${baseName(folder)} varsayılana döndü`);
+        notify("ok", t("toast.reset", { name: baseName(folder) }));
       }
     } catch (err) {
-      notify("err", String(err));
+      notify("err", errorMessage(err));
     } finally {
       setBusy(false);
     }
   };
 
   const win = IN_APP ? getCurrentWindow() : null;
-  const symbolLabel = symbolById(symbol)?.label ?? "Yok";
+  const current = symbolById(symbol);
+  const symbolLabel = current ? pick(current) : t("symbol.none");
 
   return (
     <div className="window">
       <header className="titlebar" data-tauri-drag-region>
-        <div className="brand" data-tauri-drag-region>
-          <span className="brand-mark" dangerouslySetInnerHTML={{ __html: folderSvg({ color: "#8a93a6", symbol: null }, 16) }} />
-          Folder Studio
-        </div>
+        <About
+          logo={LOGO}
+          inApp={IN_APP}
+          update={updater.state}
+          onCheck={updater.checkNow}
+          onInstall={updater.install}
+        />
         <div className="controls">
-          <button aria-label="Küçült" onClick={() => win?.minimize()}>{""}</button>
-          <button aria-label="Büyüt" onClick={() => win?.toggleMaximize()}>{""}</button>
-          <button aria-label="Kapat" className="close" onClick={() => win?.close()}>{""}</button>
+          <button
+            className="lang"
+            title={t("win.language")}
+            aria-label={t("win.language")}
+            onClick={() => switchLang(lang === "tr" ? "en" : "tr")}
+          >
+            {lang.toUpperCase()}
+          </button>
+          <button aria-label={t("win.minimize")} onClick={() => win?.minimize()}>{""}</button>
+          <button aria-label={t("win.maximize")} onClick={() => win?.toggleMaximize()}>{""}</button>
+          <button aria-label={t("win.close")} className="close" onClick={() => win?.close()}>{""}</button>
         </div>
       </header>
 
@@ -199,7 +224,7 @@ export default function App() {
                   <strong>{baseName(folder)}</strong>
                   <small title={folder}>{folder}</small>
                 </span>
-                <button className="link" onClick={pickFolder}>Değiştir</button>
+                <button className="link" onClick={pickFolder}>{t("stage.change")}</button>
               </motion.div>
             ) : (
               <motion.div
@@ -210,9 +235,9 @@ export default function App() {
                 exit={{ opacity: 0, y: -8 }}
                 transition={soft}
               >
-                {dragging ? "Bırak" : "Bir klasörü pencereye sürükle"}
+                {dragging ? t("stage.drop") : t("stage.drag")}
                 <span className="dot">·</span>
-                <button className="link" onClick={pickFolder}>Klasör seç</button>
+                <button className="link" onClick={pickFolder}>{t("stage.pick")}</button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -222,7 +247,7 @@ export default function App() {
           <div className="group">
             <div className="label">
               <span>
-                Renk{" "}
+                {t("color.label")}{" "}
                 <em>
                   {colorTarget === "folder"
                     ? colorName(FOLDER_COLORS, color)
@@ -230,16 +255,16 @@ export default function App() {
                 </em>
               </span>
               <div className="segmented" role="tablist">
-                {(["folder", "symbol"] as const).map((t) => (
+                {(["folder", "symbol"] as const).map((tab) => (
                   <button
-                    key={t}
+                    key={tab}
                     role="tab"
-                    aria-selected={colorTarget === t}
-                    className={colorTarget === t ? "on" : ""}
-                    onClick={() => setColorTarget(t)}
+                    aria-selected={colorTarget === tab}
+                    className={colorTarget === tab ? "on" : ""}
+                    onClick={() => setColorTarget(tab)}
                   >
-                    {colorTarget === t && <motion.span layoutId="seg-bg" className="seg-bg" transition={spring} />}
-                    <span>{t === "folder" ? "Klasör" : "Sembol"}</span>
+                    {colorTarget === tab && <motion.span layoutId="seg-bg" className="seg-bg" transition={spring} />}
+                    <span>{tab === "folder" ? t("color.folder") : t("color.symbol")}</span>
                   </button>
                 ))}
               </div>
@@ -267,7 +292,7 @@ export default function App() {
 
           <div className="group grow">
             <div className="label">
-              Sembol <em>{symbolLabel}</em>
+              {t("symbol.label")} <em>{symbolLabel}</em>
             </div>
 
             <SymbolPicker value={symbol} onChange={setSymbol} />
@@ -281,10 +306,10 @@ export default function App() {
               whileTap={{ scale: 0.98 }}
               transition={spring}
             >
-              {busy ? <span className="spinner" /> : "Uygula"}
+              {busy ? <span className="spinner" /> : t("action.apply")}
             </motion.button>
             <button className="secondary" disabled={!folder || busy} onClick={() => run("reset")}>
-              Varsayılana döndür
+              {t("action.reset")}
             </button>
           </div>
         </aside>

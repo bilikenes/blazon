@@ -1,8 +1,10 @@
 [package]
-name = "folder-studio"
+name = "blazon"
 version = "0.1.0"
-description = "Klasör ikonlarını kolayca özelleştir"
-authors = ["you"]
+description = "Windows klasör ikonlarını renklendir ve sembollerle özelleştir"
+authors = ["Enes Bilik"]
+license = "MIT"
+repository = "https://github.com/bilikenes/blazon"
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -11,7 +13,7 @@ edition = "2024"
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "folder_studio_lib"
+name = "blazon_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -26,6 +28,7 @@ tauri-plugin-dialog = "2"
 image = { version = "0.25", default-features = false, features = ["png"] }
 ico = "0.4"
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_Storage_FileSystem", "Win32_System_Com"] }
+tauri-plugin-process = "2"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
@@ -35,3 +38,6 @@ lto = true
 opt-level = 3
 panic = "abort"
 strip = true
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2"

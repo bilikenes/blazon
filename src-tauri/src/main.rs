@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    folder_studio_lib::run()
+    blazon_lib::run()
 }

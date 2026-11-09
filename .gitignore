@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Logo çalışma çıktıları (yeniden üretilebilir)
+design/logo/**/renders/
