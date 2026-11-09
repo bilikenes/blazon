@@ -25,10 +25,21 @@ Anahtar çifti bu bilgisayarda üretildi:
 | `%USERPROFILE%\.tauri\blazon.key` | **Özel anahtar** — gizli, repoya asla girmez |
 | `%USERPROFILE%\.tauri\blazon.key.pub` | Açık anahtar — `tauri.conf.json` içinde zaten var |
 
-Özel anahtarı repo secret'ı olarak ekle (proje kökünde, Git Bash'te):
+Özel anahtarı repo secret'ı olarak ekle (proje kökünde):
 
 ```bash
+# Git Bash
 gh secret set TAURI_SIGNING_PRIVATE_KEY < ~/.tauri/blazon.key
+```
+
+```bat
+:: Komut İstemi (cmd)
+gh secret set TAURI_SIGNING_PRIVATE_KEY < "%USERPROFILE%\.tauri\blazon.key"
+```
+
+```powershell
+# PowerShell
+Get-Content "$env:USERPROFILE\.tauri\blazon.key" -Raw | gh secret set TAURI_SIGNING_PRIVATE_KEY
 ```
 
 Ya da GitHub'da: **Settings → Secrets and variables → Actions → New repository secret**,
