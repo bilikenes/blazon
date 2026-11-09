@@ -4,13 +4,13 @@ use std::path::PathBuf;
 
 /// Arayüzde çizilen 256x256 PNG'yi klasöre ikon olarak uygular.
 #[tauri::command]
-async fn apply_folder_icon(folder: String, png: Vec<u8>) -> Result<(), String> {
+async fn apply_folder_icon(folder: String, png: Vec<u8>) -> Result<(), folder_icon::IconError> {
     folder_icon::apply(&PathBuf::from(folder), &png)
 }
 
 /// Klasörü varsayılan Windows ikonuna döndürür.
 #[tauri::command]
-async fn reset_folder_icon(folder: String) -> Result<(), String> {
+async fn reset_folder_icon(folder: String) -> Result<(), folder_icon::IconError> {
     folder_icon::reset(&PathBuf::from(folder))
 }
 

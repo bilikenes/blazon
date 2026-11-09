@@ -11,7 +11,7 @@
 //! 4. Explorer'a SHChangeNotify ile "bu klasör değişti" denir ve işlemesi beklenir.
 //!
 //! Explorer'ın ikon önbelleği takılmasın diye her uygulamada dosya adı benzersiz
-//! olur (`.folderstudio-<zaman>.ico`) ve eskileri silinir.
+//! olur (`.blazon-<zaman>.ico`) ve eskileri silinir.
 
 use std::fs::{self, OpenOptions};
 use std::io::Write;
@@ -25,15 +25,77 @@ use windows_sys::Win32::UI::Shell::{
     SHChangeNotify, SHFOLDERCUSTOMSETTINGS, SHGetSetFolderCustomSettings,
 };
 
-const ICON_PREFIX: &str = ".folderstudio-";
+const ICON_PREFIX: &str = ".blazon-";
+/// Uygulamanın eski adıyla ("Folder Studio") yazılmış ikonlar; temizlikte bunlar da silinir.
+const LEGACY_PREFIXES: [&str; 1] = [".folderstudio-"];
 const ICON_SIZES: [u32; 9] = [16, 20, 24, 32, 40, 48, 64, 128, 256];
 const SECTION: &str = "[.ShellClassInfo]";
 
 const FILE_ATTRIBUTE_HIDDEN: u32 = 0x2;
 const FILE_ATTRIBUTE_SYSTEM: u32 = 0x4;
 
+// ---------- Hatalar ----------
+
+/// Arayüzün kullanıcının dilinde mesaj gösterebilmesi için hata türü.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ErrorCode {
+    /// Yol yok ya da klasör değil.
+    NotAFolder,
+    /// Sürücü kökü (C:\ gibi) — Windows buna klasör ikonu atamaya izin vermez.
+    DriveRoot,
+    /// Yazma izni yok (Program Files, Windows, başka kullanıcının klasörü...).
+    AccessDenied,
+    /// Ortam salt okunur (CD, kilitli USB, salt okunur ağ paylaşımı).
+    ReadOnlyMedia,
+    /// Dosya başka bir program tarafından kullanılıyor.
+    InUse,
+    /// Arayüzden gelen görsel bozuk.
+    InvalidImage,
+    /// Windows Shell ayarı reddetti.
+    ShellRejected,
+    /// Diğer dosya sistemi hataları.
+    Io,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct IconError {
+    pub code: ErrorCode,
+    /// Teknik ayrıntı (günlük ve hata raporu için; kullanıcıya doğrudan gösterilmez).
+    pub detail: String,
+}
+
+impl IconError {
+    fn new(code: ErrorCode, detail: impl Into<String>) -> Self {
+        Self { code, detail: detail.into() }
+    }
+
+    fn io(action: &str, path: &Path, e: std::io::Error) -> Self {
+        Self::new(io_code(&e), format!("{action} {}: {e}", path.display()))
+    }
+}
+
+impl std::fmt::Display for IconError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}: {}", self.code, self.detail)
+    }
+}
+
+fn io_code(e: &std::io::Error) -> ErrorCode {
+    match e.raw_os_error() {
+        Some(5) => ErrorCode::AccessDenied,         // ERROR_ACCESS_DENIED
+        Some(19) => ErrorCode::ReadOnlyMedia,       // ERROR_WRITE_PROTECT
+        Some(32 | 33) => ErrorCode::InUse,          // ERROR_SHARING_VIOLATION / LOCK_VIOLATION
+        _ if e.kind() == std::io::ErrorKind::PermissionDenied => ErrorCode::AccessDenied,
+        _ if e.kind() == std::io::ErrorKind::ReadOnlyFilesystem => ErrorCode::ReadOnlyMedia,
+        _ => ErrorCode::Io,
+    }
+}
+
+type Result<T> = std::result::Result<T, IconError>;
+
 /// Klasöre verilen PNG'yi ikon olarak uygular.
-pub fn apply(folder: &Path, png: &[u8]) -> Result<(), String> {
+pub fn apply(folder: &Path, png: &[u8]) -> Result<()> {
     ensure_folder(folder)?;
     let ico = build_ico(png)?;
 
@@ -50,7 +112,7 @@ pub fn apply(folder: &Path, png: &[u8]) -> Result<(), String> {
 }
 
 /// Klasörü varsayılan ikona döndürür. desktop.ini'deki diğer ayarlara dokunmaz.
-pub fn reset(folder: &Path) -> Result<(), String> {
+pub fn reset(folder: &Path) -> Result<()> {
     ensure_folder(folder)?;
     let ini_path = folder.join("desktop.ini");
     if ini_path.exists() {
@@ -61,7 +123,7 @@ pub fn reset(folder: &Path) -> Result<(), String> {
             let current = read_desktop_ini(folder);
             let edited = edit_ini(&current, None);
             if !ini_has_content(&edited) {
-                fs::remove_file(&ini_path).map_err(|e| format!("desktop.ini silinemedi: {e}"))?;
+                fs::remove_file(&ini_path).map_err(|e| IconError::io("desktop.ini silinemedi", &ini_path, e))?;
             } else if edited.trim() != current.trim() {
                 write_desktop_ini(folder, &edited)?;
             }
@@ -77,7 +139,7 @@ pub fn reset(folder: &Path) -> Result<(), String> {
 }
 
 /// Windows'un klasör özelleştirme API'si. `icon` None ise ikon ayarı kaldırılır.
-fn set_folder_icon(folder: &Path, icon: Option<&str>) -> Result<(), String> {
+fn set_folder_icon(folder: &Path, icon: Option<&str>) -> Result<()> {
     let mut icon_w: Option<Vec<u16>> = icon.map(|n| n.encode_utf16().chain(Some(0)).collect());
     let folder_w = wide(folder);
 
@@ -89,31 +151,37 @@ fn set_folder_icon(folder: &Path, icon: Option<&str>) -> Result<(), String> {
 
     let hr = unsafe { SHGetSetFolderCustomSettings(&mut settings, folder_w.as_ptr(), FCS_FORCEWRITE) };
     if hr < 0 {
-        return Err(format!("Windows klasör ayarını kabul etmedi (HRESULT {hr:#010x})"));
+        let code = match hr as u32 {
+            0x8007_0005 => ErrorCode::AccessDenied,
+            0x8007_0013 => ErrorCode::ReadOnlyMedia,
+            0x8007_0020 | 0x8007_0021 => ErrorCode::InUse,
+            _ => ErrorCode::ShellRejected,
+        };
+        return Err(IconError::new(code, format!("SHGetSetFolderCustomSettings HRESULT {hr:#010x}")));
     }
     Ok(())
 }
 
-fn ensure_folder(folder: &Path) -> Result<(), String> {
+fn ensure_folder(folder: &Path) -> Result<()> {
     if !folder.is_dir() {
-        return Err("Seçilen yol bir klasör değil.".into());
+        return Err(IconError::new(ErrorCode::NotAFolder, folder.display().to_string()));
     }
     if folder.parent().is_none() {
-        return Err("Sürücü köküne ikon atanamaz.".into());
+        return Err(IconError::new(ErrorCode::DriveRoot, folder.display().to_string()));
     }
     Ok(())
 }
 
 // ---------- ICO üretimi ----------
 
-fn build_ico(png: &[u8]) -> Result<Vec<u8>, String> {
+fn build_ico(png: &[u8]) -> Result<Vec<u8>> {
     use image::imageops::{self, FilterType};
 
     let src = image::load_from_memory_with_format(png, image::ImageFormat::Png)
-        .map_err(|e| format!("PNG okunamadı: {e}"))?
+        .map_err(|e| IconError::new(ErrorCode::InvalidImage, format!("PNG: {e}")))?
         .to_rgba8();
     if src.width() != src.height() {
-        return Err("İkon görseli kare olmalı.".into());
+        return Err(IconError::new(ErrorCode::InvalidImage, "görsel kare değil"));
     }
 
     let mut dir = ico::IconDir::new(ico::ResourceType::Icon);
@@ -124,12 +192,12 @@ fn build_ico(png: &[u8]) -> Result<Vec<u8>, String> {
             imageops::resize(&src, size, size, FilterType::Lanczos3)
         };
         let image = ico::IconImage::from_rgba_data(size, size, frame.into_raw());
-        let entry = ico::IconDirEntry::encode(&image).map_err(|e| format!("ICO hatası: {e}"))?;
+        let entry = ico::IconDirEntry::encode(&image).map_err(|e| IconError::new(ErrorCode::InvalidImage, format!("ICO: {e}")))?;
         dir.add_entry(entry);
     }
 
     let mut out = Vec::new();
-    dir.write(&mut out).map_err(|e| format!("ICO yazılamadı: {e}"))?;
+    dir.write(&mut out).map_err(|e| IconError::new(ErrorCode::InvalidImage, format!("ICO: {e}")))?;
     Ok(out)
 }
 
@@ -151,7 +219,7 @@ fn read_desktop_ini(folder: &Path) -> String {
 }
 
 /// desktop.ini'yi UTF-16LE (BOM'lu) yazar; Türkçe karakterli yollar için gerekli.
-fn write_desktop_ini(folder: &Path, content: &str) -> Result<(), String> {
+fn write_desktop_ini(folder: &Path, content: &str) -> Result<()> {
     let mut bytes = vec![0xFF, 0xFE];
     for unit in content.encode_utf16() {
         bytes.extend_from_slice(&unit.to_le_bytes());
@@ -214,7 +282,7 @@ fn ini_has_content(content: &str) -> bool {
 
 /// Gizli+sistem dosyası yazar. Var olan gizli dosyanın üzerine doğrudan yazmak
 /// Windows'ta "erişim engellendi" verdiği için önce silinir.
-fn write_hidden_file(path: &Path, bytes: &[u8]) -> Result<(), String> {
+fn write_hidden_file(path: &Path, bytes: &[u8]) -> Result<()> {
     if path.exists() {
         if let Ok(meta) = fs::metadata(path) {
             let mut perms = meta.permissions();
@@ -224,35 +292,36 @@ fn write_hidden_file(path: &Path, bytes: &[u8]) -> Result<(), String> {
                 let _ = fs::set_permissions(path, perms);
             }
         }
-        fs::remove_file(path).map_err(|e| format!("{} silinemedi: {e}", path.display()))?;
+        fs::remove_file(path).map_err(|e| IconError::io("silinemedi", path, e))?;
     }
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)
         .attributes(FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM)
         .open(path)
-        .map_err(|e| format!("{} yazılamadı: {e}", path.display()))?;
+        .map_err(|e| IconError::io("yazılamadı", path, e))?;
     file.write_all(bytes)
-        .map_err(|e| format!("{} yazılamadı: {e}", path.display()))
+        .map_err(|e| IconError::io("yazılamadı", path, e))
 }
 
-fn set_readonly(folder: &Path, readonly: bool) -> Result<(), String> {
+fn set_readonly(folder: &Path, readonly: bool) -> Result<()> {
     let mut perms = fs::metadata(folder)
-        .map_err(|e| format!("Klasör okunamadı: {e}"))?
+        .map_err(|e| IconError::io("okunamadı", folder, e))?
         .permissions();
     if perms.readonly() == readonly {
         return Ok(());
     }
     #[allow(clippy::permissions_set_readonly_false)]
     perms.set_readonly(readonly);
-    fs::set_permissions(folder, perms).map_err(|e| format!("Klasör özniteliği ayarlanamadı: {e}"))
+    fs::set_permissions(folder, perms).map_err(|e| IconError::io("öznitelik ayarlanamadı", folder, e))
 }
 
 fn remove_our_icons(folder: &Path, keep: Option<&str>) {
     let Ok(entries) = fs::read_dir(folder) else { return };
     for entry in entries.flatten() {
         let name = entry.file_name().to_string_lossy().to_string();
-        let ours = name.starts_with(ICON_PREFIX) && name.ends_with(".ico");
+        let ours = name.ends_with(".ico")
+            && std::iter::once(ICON_PREFIX).chain(LEGACY_PREFIXES).any(|p| name.starts_with(p));
         if ours && Some(name.as_str()) != keep {
             let _ = fs::remove_file(entry.path());
         }
@@ -352,7 +421,7 @@ mod tests {
     /// uygulamadan sonra diskteki güncel dosya olmalı; sıfırlayınca varsayılana dönmeli.
     #[test]
     fn shell_sees_icon_after_reapply_and_reset() {
-        let base = std::env::temp_dir().join(format!("folderstudio-shell-{}", unix_millis()));
+        let base = std::env::temp_dir().join(format!("blazon-shell-{}", unix_millis()));
         let plain = base.join("plain");
         let dir = base.join("hedef ğüş");
         fs::create_dir_all(&plain).unwrap();
@@ -380,7 +449,7 @@ mod tests {
     fn apply_and_reset_round_trip() {
         use std::os::windows::fs::MetadataExt;
 
-        let dir = std::env::temp_dir().join(format!("folderstudio-test-ğüş-{}", unix_millis()));
+        let dir = std::env::temp_dir().join(format!("blazon-test-ğüş-{}", unix_millis()));
         fs::create_dir_all(&dir).unwrap();
 
         let mut png = Vec::new();
@@ -415,6 +484,28 @@ mod tests {
         assert_eq!(fs::read_dir(&dir).unwrap().count(), 0, "klasörde artık dosya kalmamalı");
 
         fs::remove_dir(&dir).unwrap();
+    }
+
+    #[test]
+    fn errors_carry_codes() {
+        assert_eq!(apply(Path::new("C:\\"), &test_png([0, 0, 0])).unwrap_err().code, ErrorCode::DriveRoot);
+        let missing = std::env::temp_dir().join("blazon-yok-boyle-klasor");
+        assert_eq!(reset(&missing).unwrap_err().code, ErrorCode::NotAFolder);
+
+        let dir = std::env::temp_dir().join(format!("blazon-badpng-{}", unix_millis()));
+        fs::create_dir_all(&dir).unwrap();
+        assert_eq!(apply(&dir, b"not a png").unwrap_err().code, ErrorCode::InvalidImage);
+        assert_eq!(fs::read_dir(&dir).unwrap().count(), 0, "hatalı görselde dosya yazılmamalı");
+        fs::remove_dir(&dir).unwrap();
+
+        use std::io::{Error, ErrorKind};
+        assert_eq!(io_code(&Error::from_raw_os_error(5)), ErrorCode::AccessDenied);
+        assert_eq!(io_code(&Error::from_raw_os_error(19)), ErrorCode::ReadOnlyMedia);
+        assert_eq!(io_code(&Error::from_raw_os_error(32)), ErrorCode::InUse);
+        assert_eq!(io_code(&Error::new(ErrorKind::Other, "x")), ErrorCode::Io);
+
+        let json = serde_json::to_string(&IconError::new(ErrorCode::AccessDenied, "d")).unwrap();
+        assert_eq!(json, r#"{"code":"access_denied","detail":"d"}"#);
     }
 
     #[test]

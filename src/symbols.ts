@@ -15,12 +15,14 @@ export const symbolById = (id: string | null) => (id ? byId.get(id) ?? null : nu
 export const symbolSvg = (s: SymbolDef, size = 20) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${s.viewBox}" fill="none">${s.body}</svg>`;
 
-/** Türkçe karakterlere duyarsız arama için normalize. */
+/** Türkçe karakterlere duyarsız arama için normalize. Her iki dildeki etiketlerde arar. */
 const fold = (t: string) =>
   t.toLocaleLowerCase("tr").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ı/g, "i");
 
 export function searchSymbols(query: string): SymbolDef[] {
   const q = fold(query.trim());
   if (!q) return [];
-  return ALL_SYMBOLS.filter((s) => fold(s.label).includes(q) || s.id.includes(q));
+  return ALL_SYMBOLS.filter(
+    (s) => fold(s.label).includes(q) || fold(s.labelEn).includes(q) || s.id.includes(q),
+  );
 }

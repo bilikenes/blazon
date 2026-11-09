@@ -1,0 +1,32 @@
+{
+  "brand": "Blazon",
+  "tagline": "Klasörlerine renk ver",
+  "brief": "Windows için klasör ikonu özelleştirme uygulaması. Renkli, eğlenceli ve kolay; sıradan sarı klasörleri kişisel bir arşive çevirir.",
+  "adjectives": ["renkli", "eğlenceli", "samimi", "kolay"],
+  "criteria": "Başarı: ilk bakışta klasör, ikinci bakışta 'renk' fikri; 16 px'te okunur; tek renkte çalışır; fırça/palet klişelerinden uzak.",
+  "industry": "software",
+  "nav": ["Özellikler", "İndir", "GitHub"],
+  "brand_color": "#ee7a64",
+  "tile_color": "#23262f",
+  "greyscale": false,
+  "designer": "Blazon",
+  "round": 2,
+  "concepts": [
+    {
+      "name": "Boya Damlası",
+      "symbol": "final/blazon-symbol.svg",
+      "lockup": "final/blazon-horizontal.svg",
+      "symbol_on_tile": "final/blazon-symbol.svg",
+      "lockup_on_dark": "final/blazon-horizontal-white.svg",
+      "idea": "Ön kapağından taze boya damlayan bir klasör: klasörüne renk ver.",
+      "rationale": [
+        "Klasör sekmesi ne işe yaradığını anında söyler",
+        "Damlalar renk ve eğlenceyi tek jestle anlatır",
+        "16–32 px için ayrı, kalın kesim var",
+        "Yazı da aynı yuvarlak uçlarla kuruldu"
+      ]
+    }
+  ],
+  "recommendation": "Boya Damlası — onaylanan yön.",
+  "next_steps": ["Uygulama ikonuna uygula", "Tanıtım sayfasında kullan", "Sürüm 0.1.0"]
+}
