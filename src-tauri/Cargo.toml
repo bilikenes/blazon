@@ -1,6 +1,6 @@
 [package]
 name = "blazon"
-version = "0.1.0"
+version = "0.2.0"
 description = "Windows klasör ikonlarını renklendir ve sembollerle özelleştir"
 authors = ["Enes Bilik"]
 license = "MIT"
