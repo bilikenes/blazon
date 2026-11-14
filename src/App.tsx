@@ -8,6 +8,7 @@ import {
   useTransform,
 } from "motion/react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -67,6 +68,8 @@ const soft = { type: "spring", stiffness: 260, damping: 26 } as const;
 const IN_APP = isTauri();
 const LOGO = logoRaw.replace(/width="\d+"/, 'width="16"').replace(/height="\d+"/, 'height="16"');
 
+const HEX = /^#[0-9a-fA-F]{6}$/;
+
 type Toast = { id: number; kind: "ok" | "err"; text: string };
 
 const baseName = (p: string) => p.split(/[\\/]/).filter(Boolean).pop() ?? p;
@@ -109,6 +112,24 @@ export default function App() {
     setTimeout(() => setToast((t) => (t?.id === id ? null : t)), kind === "err" ? 6000 : 2800);
   };
 
+  // Klasörü seçer; Blazon ile daha önce uygulanmış bir görünüm varsa onu yükler.
+  const selectFolder = async (path: string) => {
+    setFolder(path);
+    if (!IN_APP) return;
+    try {
+      const look = await invoke<{ color: string; symbol: string | null; symbol_color: string | null } | null>(
+        "read_folder_look",
+        { folder: path },
+      );
+      if (!look || !HEX.test(look.color)) return;
+      setColor(look.color);
+      setSymbol(look.symbol && symbolById(look.symbol) ? look.symbol : null);
+      setSymbolColor(look.symbol_color && HEX.test(look.symbol_color) ? look.symbol_color : null);
+    } catch {
+      // Okunamazsa mevcut seçimler olduğu gibi kalır.
+    }
+  };
+
   useEffect(() => {
     if (!IN_APP) {
       document.documentElement.classList.add("no-mica");
@@ -120,16 +141,26 @@ export default function App() {
       else if (p.type === "leave") setDragging(false);
       else if (p.type === "drop") {
         setDragging(false);
-        if (p.paths[0]) setFolder(p.paths[0]);
+        if (p.paths[0]) void selectFolder(p.paths[0]);
       }
     });
+    return () => void unlisten.then((f) => f());
+  }, []);
+
+  // Sağ tık menüsünden gelen klasör: açılışta ve uygulama zaten açıkken.
+  useEffect(() => {
+    if (!IN_APP) return;
+    invoke<string | null>("take_launch_folder").then((f) => {
+      if (f) void selectFolder(f);
+    });
+    const unlisten = listen<string>("open-folder", (e) => void selectFolder(e.payload));
     return () => void unlisten.then((f) => f());
   }, []);
 
   const pickFolder = async () => {
     if (!IN_APP) return notify("err", t("stage.onlyInApp"));
     const picked = await open({ directory: true, multiple: false });
-    if (typeof picked === "string") setFolder(picked);
+    if (typeof picked === "string") void selectFolder(picked);
   };
 
   const run = async (action: "apply" | "reset") => {
@@ -138,7 +169,11 @@ export default function App() {
     try {
       if (action === "apply") {
         const png = await folderPng(style);
-        await invoke("apply_folder_icon", { folder, png: Array.from(png) });
+        await invoke("apply_folder_icon", {
+          folder,
+          png: Array.from(png),
+          look: { color, symbol, symbol_color: symbolColor },
+        });
         notify("ok", t("toast.applied", { name: baseName(folder) }));
       } else {
         await invoke("reset_folder_icon", { folder });

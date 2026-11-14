@@ -30,6 +30,8 @@ const ICON_PREFIX: &str = ".blazon-";
 const LEGACY_PREFIXES: [&str; 1] = [".folderstudio-"];
 const ICON_SIZES: [u32; 9] = [16, 20, 24, 32, 40, 48, 64, 128, 256];
 const SECTION: &str = "[.ShellClassInfo]";
+/// Blazon'un kendi ayarlarını (renk, sembol) sakladığı bölüm. Windows bilinmeyen bölümleri yok sayar.
+const BLAZON_SECTION: &str = "[.Blazon]";
 
 const FILE_ATTRIBUTE_HIDDEN: u32 = 0x2;
 const FILE_ATTRIBUTE_SYSTEM: u32 = 0x4;
@@ -97,8 +99,16 @@ fn io_code(e: &std::io::Error) -> ErrorCode {
 
 type Result<T> = std::result::Result<T, IconError>;
 
+/// Klasörün görünümü: arayüzde tekrar yüklenebilsin diye desktop.ini'ye yazılır.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Look {
+    pub color: String,
+    pub symbol: Option<String>,
+    pub symbol_color: Option<String>,
+}
+
 /// Klasöre verilen PNG'yi ikon olarak uygular.
-pub fn apply(folder: &Path, png: &[u8]) -> Result<()> {
+pub fn apply(folder: &Path, png: &[u8], look: Option<&Look>) -> Result<()> {
     ensure_folder(folder)?;
     let ico = build_ico(png)?;
 
@@ -110,8 +120,30 @@ pub fn apply(folder: &Path, png: &[u8]) -> Result<()> {
     }
 
     remove_our_icons(folder, Some(&icon_name));
+
+    // Görünümü kaydet (en iyi çaba: yazılamazsa ikon yine de uygulanmış olur).
+    if let Some(look) = look {
+        let edited = set_look(&read_desktop_ini(folder), Some(look));
+        let _ = write_desktop_ini(folder, &edited);
+    }
     notify_explorer(folder);
     Ok(())
+}
+
+/// Klasörde Blazon ile kaydedilmiş görünümü okur. Ikon sonradan başka bir yolla
+/// değiştirilmişse (Blazon'a ait değilse) kayıt eskimiş sayılır.
+pub fn read_look(folder: &Path) -> Option<Look> {
+    let ini = read_desktop_ini(folder);
+    let icon = ini_value(&ini, SECTION, "IconResource")?;
+    if !icon.starts_with(ICON_PREFIX) {
+        return None;
+    }
+    let color = ini_value(&ini, BLAZON_SECTION, "Color")?;
+    Some(Look {
+        color,
+        symbol: ini_value(&ini, BLAZON_SECTION, "Symbol"),
+        symbol_color: ini_value(&ini, BLAZON_SECTION, "SymbolColor"),
+    })
 }
 
 /// Klasörü varsayılan ikona döndürür. desktop.ini'deki diğer ayarlara dokunmaz.
@@ -124,7 +156,7 @@ pub fn reset(folder: &Path) -> Result<()> {
         set_folder_icon(folder, None)?;
         if ini_path.exists() {
             let current = read_desktop_ini(folder);
-            let edited = edit_ini(&current, None);
+            let edited = set_look(&edit_ini(&current, None), None);
             if !ini_has_content(&edited) {
                 fs::remove_file(&ini_path)
                     .map_err(|e| IconError::io("desktop.ini silinemedi", &ini_path, e))?;
@@ -286,6 +318,63 @@ fn edit_ini(content: &str, icon: Option<&str>) -> String {
 
     let mut out = lines.join("\r\n");
     out.push_str("\r\n");
+    out
+}
+
+/// `section` içindeki `key` değerini (boş değilse) döndürür.
+fn ini_value(content: &str, section: &str, key: &str) -> Option<String> {
+    let mut in_section = false;
+    for line in content.lines() {
+        let t = line.trim();
+        if t.starts_with('[') {
+            in_section = t.eq_ignore_ascii_case(section);
+        } else if in_section {
+            if let Some((k, v)) = t.split_once('=') {
+                if k.trim().eq_ignore_ascii_case(key) {
+                    let v = v.trim();
+                    return (!v.is_empty()).then(|| v.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
+/// [.Blazon] bölümünü kaldırır; `look` verildiyse sona yenisini ekler.
+fn set_look(content: &str, look: Option<&Look>) -> String {
+    let mut lines: Vec<String> = Vec::new();
+    let mut in_blazon = false;
+    for line in content.lines() {
+        let t = line.trim();
+        if t.starts_with('[') {
+            in_blazon = t.eq_ignore_ascii_case(BLAZON_SECTION);
+        }
+        if !in_blazon {
+            lines.push(line.to_string());
+        }
+    }
+    while lines.last().is_some_and(|l| l.trim().is_empty()) {
+        lines.pop();
+    }
+    if let Some(look) = look {
+        // Satır sonu/bölüm enjeksiyonunu engelle.
+        let clean = |v: &str| v.chars().filter(|c| !c.is_control() && *c != '[').collect::<String>();
+        lines.push(BLAZON_SECTION.to_string());
+        lines.push(format!("Color={}", clean(&look.color)));
+        if let Some(sym) = &look.symbol {
+            lines.push(format!("Symbol={}", clean(sym)));
+        }
+        if let Some(sc) = &look.symbol_color {
+            lines.push(format!("SymbolColor={}", clean(sc)));
+        }
+    }
+    if lines.is_empty() {
+        return String::new();
+    }
+    let mut out = lines.join("
+");
+    out.push_str("
+");
     out
 }
 
@@ -484,7 +573,7 @@ mod tests {
             .enumerate()
         {
             std::thread::sleep(std::time::Duration::from_millis(20));
-            apply(&dir, &test_png(rgb)).unwrap();
+            apply(&dir, &test_png(rgb), None).unwrap();
             let name = current_icon_name(&dir);
             let seen = shell_icon_location(&dir);
             assert!(
@@ -525,8 +614,14 @@ mod tests {
             .unwrap();
 
         // İki kez uygula: ikinci seferde eski .ico silinmeli, desktop.ini üzerine yazılabilmeli.
-        apply(&dir, &png).unwrap();
-        apply(&dir, &png).unwrap();
+        let look = Look {
+            color: "#508cf0".into(),
+            symbol: Some("star".into()),
+            symbol_color: None,
+        };
+        apply(&dir, &png, None).unwrap();
+        apply(&dir, &png, Some(&look)).unwrap();
+        assert_eq!(read_look(&dir), Some(look.clone()), "görünüm geri okunabilmeli");
 
         let icons: Vec<_> = fs::read_dir(&dir)
             .unwrap()
@@ -571,7 +666,7 @@ mod tests {
     #[test]
     fn errors_carry_codes() {
         assert_eq!(
-            apply(Path::new("C:\\"), &test_png([0, 0, 0]))
+            apply(Path::new("C:\\"), &test_png([0, 0, 0]), None)
                 .unwrap_err()
                 .code,
             ErrorCode::DriveRoot
@@ -582,7 +677,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("blazon-badpng-{}", unix_millis()));
         fs::create_dir_all(&dir).unwrap();
         assert_eq!(
-            apply(&dir, b"not a png").unwrap_err().code,
+            apply(&dir, b"not a png", None).unwrap_err().code,
             ErrorCode::InvalidImage
         );
         assert_eq!(
@@ -606,6 +701,25 @@ mod tests {
 
         let json = serde_json::to_string(&IconError::new(ErrorCode::AccessDenied, "d")).unwrap();
         assert_eq!(json, r#"{"code":"access_denied","detail":"d"}"#);
+    }
+
+    #[test]
+    fn look_section_round_trip_and_cleanup() {
+        let look = Look {
+            color: "#112233".into(),
+            symbol: None,
+            symbol_color: Some("#ffffff".into()),
+        };
+        let base = edit_ini("", Some(".blazon-1.ico"));
+        let with = set_look(&base, Some(&look));
+        assert_eq!(ini_value(&with, BLAZON_SECTION, "Color").as_deref(), Some("#112233"));
+        assert_eq!(ini_value(&with, BLAZON_SECTION, "Symbol"), None);
+        assert_eq!(ini_value(&with, BLAZON_SECTION, "SymbolColor").as_deref(), Some("#ffffff"));
+        // Tekrar yazınca çoğalmaz, kaldırınca iz kalmaz.
+        let again = set_look(&with, Some(&look));
+        assert_eq!(again.matches(BLAZON_SECTION).count(), 1);
+        let cleaned = set_look(&edit_ini(&again, None), None);
+        assert!(!ini_has_content(&cleaned));
     }
 
     #[test]
