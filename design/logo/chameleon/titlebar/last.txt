@@ -1,0 +1,3 @@
+Saved [chameleon-raw.png](C:/Users/PC/Desktop/blazon/design/logo/chameleon/titlebar/chameleon-raw.png), a 1254×1254 PNG created with the built-in tool.
+
+The simplified chameleon is complete, but the generated background varies slightly from exact #FF00FF. No other workspace files were modified.

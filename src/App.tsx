@@ -66,7 +66,7 @@ const symbolColors = (folderHex: string): Swatch[] => [
 const spring = { type: "spring", stiffness: 500, damping: 32 } as const;
 const soft = { type: "spring", stiffness: 260, damping: 26 } as const;
 const IN_APP = isTauri();
-const LOGO = `<img src="${logoUrl}" width="16" height="16" alt="" style="border-radius:4px" />`;
+const LOGO = `<img src="${logoUrl}" width="22" height="22" alt="" />`;
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 

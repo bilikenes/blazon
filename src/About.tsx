@@ -94,7 +94,7 @@ export default function About({ logo, inApp, update, onCheck, onInstall }: Props
             transition={{ duration: 0.14 }}
           >
             <div className="about-head">
-              <span className="about-logo" dangerouslySetInnerHTML={{ __html: logo.replace(/width="16"/, 'width="40"').replace(/height="16"/, 'height="40"') }} />
+              <span className="about-logo" dangerouslySetInnerHTML={{ __html: logo.replace(/width="22"/, 'width="40"').replace(/height="22"/, 'height="40"') }} />
               <div>
                 <strong>Blazon</strong>
                 {version && <small>{t("about.version", { version })}</small>}

@@ -1,0 +1,10 @@
+Use the built-in image generation tool to create ONE new square image (at least 1024x1024) and save it as PNG to C:/Users/PC/Desktop/blazon/design/logo/chameleon/titlebar/chameleon-raw.png (copy it there from wherever the tool writes it). Do not modify any other file.
+
+The attached reference image is the app icon of "Blazon", a Windows folder-colouring app: a copperplate-engraved black-and-ivory chameleon gripping a folder. I need a SMALL-SIZE companion mark: the SAME chameleon character only, with NO folder, NO rounded tile and NO ground shadow, designed to stay readable when shrunk to 16-32 px in a window title bar.
+
+Requirements:
+- Subject: the chameleon alone, side profile facing right, the same helmet-like casque, big turret eye, ridged spine and tightly curled spiral tail as in the reference. Its feet grip nothing (or tiny simple gripping toes); keep one compact, connected silhouette that fills about 85% of the canvas, centred.
+- Style: same classic engraved ink look as the reference, black ink and ivory only, but SIMPLIFIED for small size: bold confident outer contour, thicker line weights, far fewer and coarser hatching lines, large calm ivory areas on the body, a clearly readable eye and curl. No fine scale texture wallpaper.
+- Colours: black ink and ivory/off-white only on the animal. Do NOT tint the animal with any colour.
+- Background: ONE perfectly flat, opaque, pure magenta #FF00FF filling the whole canvas edge to edge. No gradient, no texture, no shadow, no glow, no border, nothing else in the scene. Do not use magenta anywhere on the animal.
+- No text, no letters, no watermark.

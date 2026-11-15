@@ -1,5 +1,12 @@
 <p align="center">
-  <img src="design/logo/final/blazon-horizontal.svg" alt="Blazon" height="96">
+  <img src="design/logo/Blazon-logo/master-1024.png" alt="Blazon" width="128">
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="design/logo/final/blazon-wordmark-white.svg">
+    <img src="design/logo/final/blazon-wordmark.svg" alt="Blazon" height="48">
+  </picture>
 </p>
 
 <p align="center">
