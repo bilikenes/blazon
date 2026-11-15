@@ -19,7 +19,7 @@ import SymbolPicker from "./SymbolPicker";
 import { errorMessage, lang, pick, switchLang, t } from "./i18n";
 import About from "./About";
 import { useUpdater } from "./updater";
-import logoRaw from "../design/logo/final/blazon-symbol-small.svg?raw";
+import logoUrl from "./assets/logo.png";
 import "./App.css";
 
 const swatch = (id: Parameters<typeof t>[0] & `color.${string}`, hex: string): Swatch => ({
@@ -66,7 +66,7 @@ const symbolColors = (folderHex: string): Swatch[] => [
 const spring = { type: "spring", stiffness: 500, damping: 32 } as const;
 const soft = { type: "spring", stiffness: 260, damping: 26 } as const;
 const IN_APP = isTauri();
-const LOGO = logoRaw.replace(/width="\d+"/, 'width="16"').replace(/height="\d+"/, 'height="16"');
+const LOGO = `<img src="${logoUrl}" width="16" height="16" alt="" style="border-radius:4px" />`;
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
