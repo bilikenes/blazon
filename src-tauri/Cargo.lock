@@ -257,7 +257,7 @@ dependencies = [
 
 [[package]]
 name = "blazon"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "ico 0.4.0",
  "image",
