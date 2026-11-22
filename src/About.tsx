@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { t } from "./i18n";
+import MenuToggle from "./MenuToggle";
 import type { UpdateState } from "./updater";
 
 const REPO = "https://github.com/bilikenes/blazon";
@@ -116,6 +117,8 @@ export default function About({ logo, inApp, update, onCheck, onInstall }: Props
                 {label && <span className={`about-status ${update.kind}`}>{label}</span>}
               </div>
             )}
+
+            {inApp && <MenuToggle />}
 
             <div className="about-links">
               <button className="link" onClick={() => void openUrl(REPO)}>GitHub</button>

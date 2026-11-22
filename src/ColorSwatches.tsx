@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { HexColorInput, HexColorPicker } from "react-colorful";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import { t } from "./i18n";
 
 export type Swatch = {
@@ -29,14 +30,15 @@ export default function ColorSwatches({ swatches, value, onChange, group, defaul
   const [custom, setCustom] = useState(isPreset || !value ? defaultCustom : value);
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
+  const picking = useRef(false); // damlalık açıkken panel kapanmasın
 
   // Dışarı tıklayınca veya Esc ile kapanır
   useEffect(() => {
     if (!open) return;
     const onDown = (e: PointerEvent) => {
-      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
+      if (!picking.current && !wrap.current?.contains(e.target as Node)) setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !picking.current && setOpen(false);
     document.addEventListener("pointerdown", onDown);
     document.addEventListener("keydown", onKey);
     return () => {
@@ -48,6 +50,19 @@ export default function ColorSwatches({ swatches, value, onChange, group, defaul
   const pickCustom = (hex: string) => {
     setCustom(hex);
     onChange(hex);
+  };
+
+  /** Ekranın herhangi bir yerinden renk alır; Esc ile vazgeçilir. */
+  const pickFromScreen = async () => {
+    if (picking.current) return;
+    picking.current = true;
+    try {
+      const hex = await invoke<string | null>("pick_screen_color");
+      if (hex) pickCustom(hex);
+    } finally {
+      // Kapatan tuş (Esc/Enter) sayfaya da ulaşabilir; paneli etkilemesin.
+      setTimeout(() => (picking.current = false), 100);
+    }
   };
 
   return (
@@ -100,6 +115,19 @@ export default function ColorSwatches({ swatches, value, onChange, group, defaul
               <span className="color-pop-dot" style={{ background: custom }} />
               <span className="color-pop-hash">#</span>
               <HexColorInput className="color-pop-input" color={custom} onChange={pickCustom} />
+              {isTauri() && (
+                <button
+                  className="color-pop-pick"
+                  title={t("color.pick")}
+                  aria-label={t("color.pick")}
+                  onClick={() => void pickFromScreen()}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M8.5 5 11 7.5M7.25 3.75l5 5M9.75 6.25l2.6-2.6a1.6 1.6 0 0 0-2.26-2.26L7.5 4M9 6.25 4 11.25 3 13l1.75-1 5-5" />
+                    <path d="M2.25 13.75 3 13" />
+                  </svg>
+                </button>
+              )}
               <button className="color-pop-done" onClick={() => setOpen(false)}>
                 {t("color.done")}
               </button>

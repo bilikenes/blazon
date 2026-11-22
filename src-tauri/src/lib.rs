@@ -1,4 +1,6 @@
+mod eyedropper;
 mod folder_icon;
+mod menu;
 
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -45,9 +47,41 @@ fn take_launch_folder(state: tauri::State<'_, LaunchFolder>) -> Option<String> {
     state.0.lock().ok().and_then(|mut g| g.take())
 }
 
+/// Windows 11 ana sağ tık menüsü seçeneğinin durumu.
+#[tauri::command]
+async fn menu_status() -> menu::MenuStatus {
+    menu::status()
+}
+
+/// Ana sağ tık menüsünü açar ya da kapatır (yönetici onayı isteyebilir) ve yeni durumu verir.
+#[tauri::command]
+async fn set_menu(enabled: bool) -> Result<menu::MenuStatus, menu::MenuError> {
+    if enabled {
+        menu::enable()?;
+    } else {
+        menu::disable(true)?;
+    }
+    Ok(menu::status())
+}
+
+/// Ekrandan renk seçtirir; vazgeçilirse `None`.
+#[tauri::command]
+async fn pick_screen_color(window: tauri::WebviewWindow) -> Option<String> {
+    let color = tauri::async_runtime::spawn_blocking(eyedropper::pick)
+        .await
+        .ok()
+        .flatten();
+    let _ = window.set_focus();
+    color
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let args: Vec<String> = std::env::args().collect();
+    // Kurulum programının çağırdığı, pencere açmayan işlemler.
+    if let Some(code) = menu::run_cli(&args) {
+        std::process::exit(code);
+    }
     let launch = LaunchFolder(Mutex::new(folder_from_args(&args)));
 
     let builder = tauri::Builder::default();
@@ -75,7 +109,10 @@ pub fn run() {
             apply_folder_icon,
             reset_folder_icon,
             read_folder_look,
-            take_launch_folder
+            take_launch_folder,
+            menu_status,
+            set_menu,
+            pick_screen_color
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

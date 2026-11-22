@@ -83,3 +83,15 @@ sadece denemek istiyorsan yukarıdaki gibi anahtarı verin.
 
 Kurulum dosyası Authenticode ile imzalı değil; Windows SmartScreen ilk sürümlerde "Bilinmeyen yayımcı" uyarısı
 gösterir. Kaldırmak için bir kod imzalama hizmeti (ör. Azure Trusted Signing) gerekir — ücretli, ayrı bir karar.
+
+## Sağ tık menüsü paketi
+
+`shell-menu/package/signed/` içindeki `.msix` ve `.cer` hazır tutulur; normal sürümlerde yeniden imzalanmaz. DLL her
+derlemede `npm run build:menu` ile üretilir ve pakete dahil değildir. Yalnızca `AppxManifest.xml` veya logolar değişirse:
+
+1. Manifestteki `Version` değerini artır.
+2. `powershell -ExecutionPolicy Bypass -File shell-menu\package\build-package.ps1`
+3. Yeni `.msix` ve `.cer` dosyalarını commit et.
+
+Betik her seferinde yeni bir sertifika üretir ve gizli anahtarı imzadan sonra siler. Seçeneği zaten açık olanlar eski
+paketle devam eder; yeni açanlar yeni sertifikayı onaylar.

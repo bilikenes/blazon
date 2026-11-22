@@ -1,0 +1,3 @@
+# DLL, Explorer'ın vekil sürecine yüklenir; VC++ çalışma zamanına bağımlı olmasın.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

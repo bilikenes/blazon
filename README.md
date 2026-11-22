@@ -37,6 +37,13 @@ dosyasını indirip çalıştır. Yönetici izni gerekmez. Windows 10 (1809+) ve
 > İlk sürümler kod imzası taşımadığından Windows SmartScreen "Bilinmeyen yayımcı" uyarısı gösterebilir:
 > **Ek bilgi → Yine de çalıştır**.
 
+### Sağ tık menüsü
+
+Blazon, klasörlerin **Daha fazla seçenek göster** menüsünde (Shift + sağ tık) görünür. Windows 11'de istersen ana menüye
+de eklenir: kurulum sorar, sonradan **Hakkında** panelinden açıp kapatabilirsin. Açmak yönetici onayı ister ve Blazon'un
+sertifikasını bilgisayarın "Güvenilen Kişiler" deposuna ekler. Sertifikanın gizli anahtarı, menü paketi imzalandıktan sonra
+silinmiştir; seçeneği kapatınca veya Blazon'u kaldırırken sertifika da kaldırılabilir.
+
 ## English
 
 **Blazon** is a tiny Windows app that colours your folders and stamps them with a symbol, so you can find them at a
@@ -44,6 +51,10 @@ glance. Drop a folder on the window, pick a colour and a symbol, hit **Apply**. 
 The icon is stored inside the folder, so it survives moves and copies — and keeps working even if you uninstall Blazon.
 
 Download the installer from [Releases](https://github.com/bilikenes/blazon/releases/latest). No admin rights needed.
+
+On Windows 11 the installer can also add Blazon to the main right-click menu. This is optional, needs administrator
+approval, and adds Blazon's certificate to the computer's "Trusted People" store; its private key was deleted after signing
+the menu package. Toggle it any time in the **About** panel.
 
 ## Geliştirme / Development
 
@@ -60,6 +71,7 @@ cargo test --manifest-path src-tauri/Cargo.toml   # Windows shell testleri
 |---|---|
 | `src/` | React arayüzü (önizleme, renk ve sembol seçiciler) |
 | `src-tauri/src/folder_icon.rs` | ICO üretimi, `desktop.ini`, Windows Shell API çağrıları |
+| `shell-menu/` | Windows 11 sağ tık menüsü: komut DLL'i ve imzalı menü paketi |
 | `design/logo/` | Logo kaynakları, üretim betikleri ve [kullanım kılavuzu](design/logo/BRAND.md) |
 | `scripts/build-icons.mjs` | Sembol kataloğunu Gravity UI ikonlarından üretir |
 
